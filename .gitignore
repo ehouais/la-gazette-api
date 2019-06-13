@@ -1,0 +1,7 @@
+.env
+.vscode
+.DS_Store
+launch.json
+manifest.yml
+data/
+node_modules/
