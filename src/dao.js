@@ -8,7 +8,8 @@ const {
   MONGO_DATABASE: dbName,
   MONGO_ADVERTS_COLLECTION_NAME: collectionName
 } = process.env
-const url = "mongodb://" + dbLogin + ":" + dbPassword + "@" + dbHost + ":" + dbPort;
+const credentials = dbLogin && dbPassword ? `${dbLogin}:${dbPassword}@` : ''
+const url = `mongodb://${credentials}${dbHost}:${dbPort}`;
 const db = require('./helpers/db')(url, dbName)
 const query = db.collection(collectionName)
 
@@ -19,17 +20,12 @@ const filterId = data => {
 }
 
 module.exports = {
-  advertExists: id => query(collection => {
-    try {
-      const _id = db.ObjectId(id)
-      return collection
-        .find({ _id }, { _id: 1 })
-        .limit(1)
-        .hasNext()
-    } catch(e) {
-      return Promise.resolve(false)
-    }
-  }),
+  advertExists: id => query(collection =>
+    collection
+      .find({ _id: db.ObjectId(id) }, { _id: 1 })
+      .limit(1)
+      .hasNext()
+  ),
   createAdvert: params => query(collection =>
     collection
       .insertOne({
