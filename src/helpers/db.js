@@ -10,7 +10,7 @@ const DbError = class MyError extends Error {
 
 module.exports = (url, dbName) => {
   const collection = collectionName =>
-    action => mongoClient.connect(url, { useNewUrlParser: true })
+    action => mongoClient.connect(url+'/'+dbName, { useNewUrlParser: true })
       .then(client => new Promise((resolve, reject) => {
         let db
         try {
