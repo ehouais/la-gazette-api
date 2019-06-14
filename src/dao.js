@@ -26,7 +26,7 @@ module.exports = {
     .countDocuments()
   ),
   advertExists: id => adverts().then(adverts => adverts
-    .find({ _id: db.ObjectId(id) }, { _id: 1 })
+    .find({ _id: mongo.ObjectId(id) }, { _id: 1 })
     .limit(1)
     .hasNext()
   ),
@@ -40,7 +40,7 @@ module.exports = {
     .toArray()
   ),
   getAdvert: id => adverts().then(adverts => adverts
-    .findOne({ _id: db.ObjectId(id) })
+    .findOne({ _id: mongo.ObjectId(id) })
     .then(filter => filter && filterId(filter))
   ),
   // const updateAdvert = (id, params) => query(collection => collection.(),
