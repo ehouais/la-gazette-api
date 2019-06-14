@@ -1,17 +1,19 @@
+const mongo = require("mongodb")
+const mongoClient = mongo.MongoClient;
 const { log } = require('./helpers/logger')
 
-const {
-  MONGO_HOST: dbHost,
-  MONGO_PORT: dbPort,
-  MONGO_WEBSERVER_USERNAME: dbLogin,
-  MONGO_WEBSERVER_PASSWORD: dbPassword,
-  MONGO_DATABASE: dbName,
-  MONGO_ADVERTS_COLLECTION_NAME: collectionName
-} = process.env
-const credentials = dbLogin && dbPassword ? `${dbLogin}:${dbPassword}@` : ''
-const url = `mongodb://${credentials}${dbHost}:${dbPort}`;
-const db = require('./helpers/db')(url, dbName)
-const query = db.collection(collectionName)
+const db = ((dbUrl, dbName) => {
+  let db
+  return () => {
+    if (db) return Promise.resolve(db)
+    // DB name in connection URL is necessary when using mLab cloud storage, where user account is linked to DB
+    log(`Connecting to database ${dbUrl}/${dbName}...`)
+    return mongoClient.connect(`${dbUrl}/${dbName}`, { useNewUrlParser: true })
+      .then(client => db = client.db(dbName))
+  }
+})(process.env.MONGO_URL, process.env.MONGO_DATABASE)
+
+const adverts = () => db().then(db => db.collection(process.env.MONGO_ADVERTS_COLLECTION_NAME))
 
 const filterId = data => {
   data.id = data._id.toString()
@@ -20,34 +22,29 @@ const filterId = data => {
 }
 
 module.exports = {
-  advertExists: id => query(collection =>
-    collection
-      .find({ _id: db.ObjectId(id) }, { _id: 1 })
-      .limit(1)
-      .hasNext()
+  test: () => adverts().then(adverts => adverts
+    .countDocuments()
   ),
-  createAdvert: params => query(collection =>
-    collection
-      .insertOne({
-        ...params,
-        creation_date: new Date().getTime()
-      })
-      .then(result => filterId(result.ops[0]))
+  advertExists: id => adverts().then(adverts => adverts
+    .find({ _id: db.ObjectId(id) }, { _id: 1 })
+    .limit(1)
+    .hasNext()
   ),
-  getAllAdverts: () => query(collection => 
-    collection
-      .find({})
-      .map(filterId)
-      .toArray()
+  createAdvert: params => adverts().then(adverts => adverts
+    .insertOne({ ...params, creation_date: new Date().getTime() })
+    .then(result => filterId(result.ops[0]))
   ),
-  getAdvert: id => query(collection =>
-    collection
-      .findOne({ _id: db.ObjectId(id) })
-      .then(filter => filter && filterId(filter))
+  getAllAdverts: () => adverts().then(adverts => adverts
+    .find({})
+    .map(filterId)
+    .toArray()
+  ),
+  getAdvert: id => adverts().then(adverts => adverts
+    .findOne({ _id: db.ObjectId(id) })
+    .then(filter => filter && filterId(filter))
   ),
   // const updateAdvert = (id, params) => query(collection => collection.(),
-  deleteAdvert: id => query(collection =>
-    collection
-      .deleteOne({ id })
+  deleteAdvert: id => adverts().then(adverts => adverts
+    .deleteOne({ id })
   )
 }
