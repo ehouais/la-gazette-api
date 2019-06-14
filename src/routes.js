@@ -4,7 +4,7 @@ const homeRoute    = '/'
 const advertsRoute = '/adverts'
 const advertRoute  = '/adverts/:advert_id'
 
-const root = `${process.env.ROOT_URI}:${process.env.PORT}`
+const root = process.env.ROOT_URI
 
 module.exports = {
   homeRoute,
