@@ -11,7 +11,11 @@ const ifExists = (cb, response) =>
 
 
 const genericErrorHandler = response =>
-  error => response.status(500).send(`${error.name}: ${error.stack}`)
+  error => {
+    const str = `${error.name}: ${error.stack}`
+    log(str)
+    response.status(500).send(str)
+  }
 
 const registerResourceFactory = (app, route, factory) => {
   const params = route.match(/:[a-zA-Z0-9_]+/g) || []

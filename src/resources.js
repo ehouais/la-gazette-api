@@ -22,8 +22,12 @@ module.exports = {
   adverts: {
     get: (request, response) => {
       authorize(request.user.role, [Roles.USER], response, () => {
+        log('adverts.get: DAO.getAllAdverts...')
         getAllAdverts()
-          .then(adverts => { response.json(formatAdverts(adverts)) })
+          .then(adverts => {
+            log('adverts.get: formatAdverts...')
+            response.json(formatAdverts(adverts))
+          })
           .catch(genericErrorHandler(response))
       })
     },
