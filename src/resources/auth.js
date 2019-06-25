@@ -6,9 +6,7 @@ module.exports = {
   auth: {
     get: [
       check(authentication),
-      (request, response) => {
-        response.redirect(userUri(request.user.email))
-      }
+      (request, response) => response.redirect(userUri(request.user.email))
     ]
   }
 }

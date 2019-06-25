@@ -20,6 +20,7 @@ module.exports = (dbUrl, dbName) => {
     insertOne: doc => collection => collection
       .insertOne({ ...doc, creation_date: new Date().getTime() })
       .then(result => result.ops[0]),
+    updateOne: (query, patch) => collection => collection.updateOne(query, patch),
     deleteOne: query => collection => collection.deleteOne(query)
   }
 }

@@ -8,8 +8,8 @@ const advertPhotosRoute   = '/adverts/:advert_id/photos'
 const photosRoute         = '/photos'
 const photoRoute          = '/photos/:photo_id'
 const usersRoute          = '/users'
-const userRoute           = '/users/:user_id'
-const userAdvertsRoute    = '/users/:user_id/adverts'
+const userRoute           = '/users/:email'
+const userAdvertsRoute    = '/users/:email/adverts'
 
 const root = process.env.ROOT_URI
 

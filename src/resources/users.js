@@ -1,4 +1,4 @@
-const { userUri, userAdvertsUri, userPhotosUri } = require('../routes')
+const { userUri } = require('../routes')
 const formatUsers = users => users.map(formatUser)
 const formatUser = data => ({
   self: userUri(data.email),
@@ -6,24 +6,18 @@ const formatUser = data => ({
   lastname: data.lastname,
   email: data.email,
   avatar: data.avatar,
-  //posts: userAdvertsUri(data.email),
-  //photos: userPhotosUri(data.email),
   creation_date: data.creation_date
 })
 
-const { check, paramsValidator, genericErrorHandler, formatAndSend } = require('../helpers/express-rest')
+const { check, run, empty, send } = require('../helpers/express-rest')
 const { authentication, isAdmin, isUserOrAdmin } = require('../auth')
-const { getUsers, getUserByEmail } = require('../dao')
+const { getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
 module.exports = {
   users: {
     get: [
       check(authentication),
       check(isAdmin),
-      (request, response) => {
-        getUsers()
-          .then(formatAndSend(response, formatUsers))
-          .catch(genericErrorHandler(response))
-      }
+      run((request, response) => getUsers().then(formatUsers).then(send(response)))
     ]
   },
   user: email => getUserByEmail(email).then(user => user &&
@@ -31,11 +25,17 @@ module.exports = {
       get: [
         check(authentication),
         check(isUserOrAdmin(email)),
-        (request, response) => {
-          getUserByEmail(request.params.user_id)
-            .then(formatAndSend(response, formatUser))
-            .catch(genericErrorHandler(response))
-        }
+        run((request, response) => getUserByEmail(request.params.email).then(formatUser).then(send(response)))
+      ],
+      patch: [
+        check(authentication),
+        check(isUserOrAdmin(email)),
+        run((request, response) => patchUser(request.params.email, request.body).then(formatUser).then(send(response)))
+      ],
+      delete: [
+        check(authentication),
+        check(isAdmin),
+        run((request, response) => deleteUser(request.params.email).then(empty(response)))
       ]
     }
   )

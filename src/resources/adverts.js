@@ -8,9 +8,10 @@ const formatAdvert = data => ({
   from: userUri(data.from),
   creation_date: data.creation_date
 })
+const advertFromRequest = request => ({ ...request.body, from: request.user.email })
 
 const { createAdvert, getAdverts, getAdvert, deleteAdvert } = require('../dao')
-const { check, paramsValidator, genericErrorHandler, formatAndSend } = require('../helpers/express-rest')
+const { check, run, empty, send, paramsValidator } = require('../helpers/express-rest')
 const { authentication, isAdvertOwner } = require('../auth')
 const AdvertParamsValidator = paramsValidator((params, assert) => {
   if (assert(params.text, 'Text is missing (string)')) {
@@ -19,38 +20,20 @@ const AdvertParamsValidator = paramsValidator((params, assert) => {
 })
 module.exports = {
   adverts: {
-    get: (request, response) => {
-      getAdverts()
-      .then(formatAndSend(response, formatAdverts))
-      .catch(genericErrorHandler(response))
-    },
+    get: run((request, response) => getAdverts().then(formatAdverts).then(send(response))),
     post: [
       check(authentication),
       check(AdvertParamsValidator),
-      (request, response) => {
-        createAdvert({ ...request.body, from: request.user.email })
-          .then(formatAndSend(response, formatAdvert, 201))
-          .catch(genericErrorHandler(response))
-      }
+      run((request, response) => createAdvert(advertFromRequest).then(formatAdvert).then(created(response)))
     ],
   },
   advert: id => getAdvert(id).then(advert => advert &&
     {
-      get: [
-        (request, response) => {
-          getAdvert(request.params.advert_id)
-            .then(formatAndSend(response, formatAdvert))
-            .catch(genericErrorHandler(response))
-        }
-      ],
+      get: run((request, response) => getAdvert(request.params.advert_id).then(formatAdvert).then(send(response))),
       delete: [
         check(authentication),
         check(isAdvertOwner),
-        (request, response) => {
-          deleteAdvert(request.params.advert_id)
-            .then(() => { response.status(204).end() })
-            .catch(genericErrorHandler(response))
-        }
+        run((request, response) => deleteAdvert(request.params.advert_id).then(empty(response)))
       ]
     }
   )
