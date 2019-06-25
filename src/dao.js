@@ -1,50 +1,44 @@
 const mongo = require("mongodb")
-const mongoClient = mongo.MongoClient;
+const DB = require('./helpers/mongo-utils')
+const { collection, getAll, map, count, find, findOne, insertOne, deleteOne } = DB(process.env.MONGO_URL, process.env.MONGO_DATABASE)
+const AWS = require('aws-sdk');
+AWS.config.update({region: 'us-west-2'});
+
 const { log } = require('./helpers/logger')
 
-const db = ((dbUrl, dbName) => {
-  let db
-  return () => {
-    if (db) return Promise.resolve(db)
-    // DB name in connection URL is necessary when using mLab cloud storage, where user account is linked to DB
-    log(`Connecting to database ${dbUrl}/${dbName}...`)
-    return mongoClient.connect(`${dbUrl}/${dbName}`, { useNewUrlParser: true })
-      .then(client => db = client.db(dbName))
-  }
-})(process.env.MONGO_URL, process.env.MONGO_DATABASE)
+const S3 = new AWS.S3({apiVersion: '2006-03-01'})
+const s3Params = key => ({Bucket: process.env.S3_BUCKET_NAME, Key: key})
 
-const adverts = () => db().then(db => db.collection(process.env.MONGO_ADVERTS_COLLECTION_NAME))
-
-const filterId = data => {
-  data.id = data._id.toString()
-  delete data._id
-  return data
-}
+const removeId = data => { delete data._id; return data }
+const transformId = data => { data.id = data._id.toString(); return removeId(data) }
 
 module.exports = {
-  test: () => adverts().then(adverts => adverts
-    .countDocuments()
-  ),
-  advertExists: id => adverts().then(adverts => adverts
-    .find({ _id: mongo.ObjectId(id) }, { _id: 1 })
-    .limit(1)
-    .hasNext()
-  ),
-  createAdvert: params => adverts().then(adverts => adverts
-    .insertOne({ ...params, creation_date: new Date().getTime() })
-    .then(result => filterId(result.ops[0]))
-  ),
-  getAllAdverts: () => adverts().then(adverts => adverts
-    .find({})
-    .map(filterId)
-    .toArray()
-  ),
-  getAdvert: id => adverts().then(adverts => adverts
-    .findOne({ _id: mongo.ObjectId(id) })
-    .then(filter => filter && filterId(filter))
-  ),
-  // const updateAdvert = (id, params) => query(collection => collection.(),
-  deleteAdvert: id => adverts().then(adverts => adverts
-    .deleteOne({ id })
-  )
+  test: () => collection('adverts').then(count),
+
+  createAdvert: params => collection('adverts').then(insertOne({ ...params, photos: [] })).then(transformId),
+  getAdverts: () => collection('adverts').then(getAll).then(map(transformId)),
+  getAdvert: id => collection('adverts').then(findOne({ _id: mongo.ObjectId(id) })).then(advert => advert && transformId(advert)),
+  deleteAdvert: id => collection('adverts').then(deleteOne({ _id: mongo.ObjectId(id) })), // delete corresponding photos
+
+  getAdvertPhotos: id => collection('photos').then(find({ advert_id: id })).then(map(removeId)),
+  uploadPhoto: (key, advertId, data) => new Promise((resolve, reject) => {
+    S3.putObject({ ...s3Params(key), Body: data }, err => {
+      if (err) return reject(err)
+      collection('photos').then(insertOne({ key, advert_id: advertId })).then(removeId).then(resolve)
+    })
+  }),
+
+  getPhotos: () => collection('photos').then(getAll),
+  getPhoto: key => collection('photos').then(findOne({ key })).then(removeId),
+  getPhotoStream: key => Promise.resolve(S3.getObject(s3Params(key)).createReadStream()),
+  deletePhoto: key => new Promise((resolve, reject) => {
+    S3.deleteObject(s3Params(key), err => {
+      if (err) return reject(err)
+      collection('photos').then(deleteOne({ key })).then(resolve)
+    })
+  }),
+
+  createUser: (email, passhash) => collection('users').then(insertOne({ email, passhash })),
+  getUsers: () => collection('users').then(getAll),
+  getUserByEmail: email => collection('users').then(findOne({ email })).then(removeId)
 }

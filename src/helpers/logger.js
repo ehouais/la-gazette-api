@@ -1,3 +1,6 @@
 module.exports = {
-  log: message => { console.log(message) }
+  log: (msg, err) => {
+    console.log(msg)
+    if (err) console.log(err.message, err.stack)
+  }
 }
