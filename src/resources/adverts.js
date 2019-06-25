@@ -37,7 +37,6 @@ module.exports = {
   advert: id => getAdvert(id).then(advert => advert &&
     {
       get: [
-        check(authentication),
         (request, response) => {
           getAdvert(request.params.advert_id)
             .then(formatAndSend(response, formatAdvert))

@@ -10,7 +10,6 @@ module.exports = {
   advertPhotos: advertId => getAdvert(advertId).then(advert => advert &&
     {
       get: [
-        check(authentication),
         (request, response) => getAdvertPhotos(request.params.advert_id)
           .then(formatAndSend(response, formatAdvertPhotos))
           .catch(genericErrorHandler(response))
