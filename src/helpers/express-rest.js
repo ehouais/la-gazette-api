@@ -8,7 +8,7 @@ const chain = function() {
 const check = validator => (request, response, next) => {
   validator(request)
     .then(() => next())
-    .catch(e => { response.status(e.status || 500).end(e.message) })
+    .catch(e => { response.status(e.status).end(e.message) })
 }
 const paramsValidator = tests => request => new Promise((resolve, reject) => {
   const messages = []

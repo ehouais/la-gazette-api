@@ -9,23 +9,25 @@ const authentication = request => new Promise((resolve, reject) => {
   getUserByEmail(email)
     .then(user => {
       if (!user) {
-        bcrypt.hash(password, process.env.BCRYPT_SALT_ROUNDS).then(function(hash) {
-          createUser(email, hash).then(user => {
-            request.user = { email }
+        bcrypt.hash(password, +process.env.BCRYPT_SALT_ROUNDS)
+          .then(function(hash) {
+            createUser(email, hash).then(user => {
+              request.user = { email }
+              resolve()
+            })
+          })
+          .catch(e => reject({ status: 500, message: e.message }))
+      } else {
+        bcrypt.compare(password, user.passhash)
+          .then(res => {
+            if (!res) return reject({ status: 401, message: 'Invalid password' })
+            request.user = user
             resolve()
           })
-        })
-        return reject({ status: 401, message: 'Invalid email' })
-      } else {
-        bcrypt.compare(password, user.passhash, function(err, res) {
-          if (err)  return reject({ status: 500, message: err.message })
-          if (!res) return reject({ status: 401, message: 'Invalid password' })
-          request.user = user
-          resolve()
-        })
+          .catch(e => reject({ status: 500, message: e.message }))
       }
     })
-    .catch(e => reject({ status: 500, message: e.message }))
+    .catch(e => reject({ status: 500, message: e.message+'\n'+e.stack }))
 })
 
 const isAdmin = request => new Promise((resolve, reject) => {

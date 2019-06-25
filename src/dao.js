@@ -9,8 +9,8 @@ const { log } = require('./helpers/logger')
 const S3 = new AWS.S3({apiVersion: '2006-03-01'})
 const s3Params = key => ({Bucket: process.env.S3_BUCKET_NAME, Key: key})
 
-const removeId = data => { delete data._id; return data }
-const transformId = data => { data.id = data._id.toString(); return removeId(data) }
+const removeId = data => { if (data) delete data._id; return data }
+const transformId = data => { if (data) data.id = data._id.toString(); return removeId(data) }
 
 module.exports = {
   test: () => collection('adverts').then(count),
