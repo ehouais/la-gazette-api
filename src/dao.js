@@ -19,9 +19,10 @@ const transformId = data => { if (data) data.id = data._id.toString(); return re
 module.exports = {
   test: () => adverts().then(count),
 
-  createAdvert: params => adverts().then(insertOne({ ...params, photos: [] })).then(transformId),
+  createAdvert: params => adverts().then(insertOne(params)).then(transformId),
   getAdverts: () => adverts().then(getAll).then(map(transformId)),
   getAdvert: id => adverts().then(findOne({ _id: mongo.ObjectId(id) })).then(advert => advert && transformId(advert)),
+  patchAdvert: (id, data) => adverts().then(updateOne({ _id: mongo.ObjectId(id) }, { $set: data })),
   deleteAdvert: id => adverts().then(deleteOne({ _id: mongo.ObjectId(id) })), // delete corresponding photos
 
   getAdvertPhotos: id => photos().then(find({ advert_id: id })).then(map(removeId)),

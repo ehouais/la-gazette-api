@@ -1,4 +1,5 @@
 const { log } = require('./logger')
+const validator = require('./validatorWrapper')
 
 const chain = function() {
   return [...arguments].reduce((chain, mw) => chain ? (request, response, next) => {
@@ -21,13 +22,18 @@ const resourceFactoryMW = factory => (request, response) => {
 }
 
 module.exports = {
-  check: validator => (request, response, next) => {
-    validator(request)
+  check: checkProc => (request, response, next) => {
+    checkProc(request)
       .then(() => next())
       .catch(e => {
         response.status(e.status || 500).end(e.message)
       })
-  },  
+  },
+  paramsValidity: checks => request => new Promise((resolve, reject) => {
+    const errors = validator(request.body, checks)
+    if (errors.length) return reject({ status: 400, message: errors.join('\n')})
+    resolve()
+  }),
   run: process => (request, response) => process(request, response)
     .catch(error => {
       if (typeof error == 'string') log(`Error: ${error}`)
@@ -37,15 +43,6 @@ module.exports = {
   empty: response => () => response.sendStatus(204),
   created: response => data => response.status(201).json(data),
   send: response => data => response.json(data),
-  paramsValidator: tests => request => new Promise((resolve, reject) => {
-    const messages = []
-    const res = tests(request.body, (test, message) => {
-      if (!test) messages.push(message)
-      return test
-    })
-    if (messages.length) return reject({ status: 400, message: messages.join('\n')})
-    resolve()
-  }),
   resourceMW: resource => resourceFactoryMW(() => Promise.resolve(resource)),
   resourceFactoryMW,
   StaticResource: data => ({ get: (request, response) => response.json(data) }),

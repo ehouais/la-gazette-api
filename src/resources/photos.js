@@ -1,7 +1,7 @@
 const { photoUri } = require('../routes')
 const formatPhotos = photos => photos.map(photo => photoUri(photo.key))
 
-const { check, run, empty } = require('../helpers/express-rest')
+const { check, run, empty, send } = require('../helpers/express-rest')
 const { authentication, isAdmin, isAdvertOwner } = require('../auth')
 const { getPhotos, getPhoto, getPhotoStream } = require('../dao')
 module.exports = {

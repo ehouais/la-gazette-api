@@ -10,29 +10,38 @@ const formatAdvert = data => ({
 })
 const advertFromRequest = request => ({ ...request.body, from: request.user.email })
 
-const { createAdvert, getAdverts, getAdvert, deleteAdvert } = require('../dao')
-const { check, run, empty, send, paramsValidator } = require('../helpers/express-rest')
-const { authentication, isAdvertOwner } = require('../auth')
-const AdvertParamsValidator = paramsValidator((params, assert) => {
-  if (assert(params.text, 'Text is missing (string)')) {
-    assert(params.text && params.text.length < 1024, 'Text is too long (should be 1024 characters max.')
-  }
-})
+const { createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
+const { check, run, empty, created, send, paramsValidity } = require('../helpers/express-rest')
+const { authentication, isAdvertOwnerOrAdmin } = require('../auth')
+checks = check => {
+  check('text').isLength({ min: 10, max: 1024})
+}
+
 module.exports = {
   adverts: {
     get: run((request, response) => getAdverts().then(formatAdverts).then(send(response))),
     post: [
       check(authentication),
-      check(AdvertParamsValidator),
-      run((request, response) => createAdvert(advertFromRequest).then(formatAdvert).then(created(response)))
+      check(paramsValidity(check => {
+        check('text').isLength({ min: 10, max: 1024})
+      })),
+      run((request, response) => createAdvert(advertFromRequest(request)).then(formatAdvert).then(created(response)))
     ],
   },
   advert: id => getAdvert(id).then(advert => advert &&
     {
       get: run((request, response) => getAdvert(request.params.advert_id).then(formatAdvert).then(send(response))),
+      patch: [
+        check(authentication),
+        check(isAdvertOwnerOrAdmin),
+        check(paramsValidity(check => {
+          check('text').exists() && check('text').isLength({ min: 10, max: 1024})
+        })),
+        run((request, response) => patchAdvert(request.params.advert_id, request.body).then(empty(response)))
+      ],
       delete: [
         check(authentication),
-        check(isAdvertOwner),
+        check(isAdvertOwnerOrAdmin),
         run((request, response) => deleteAdvert(request.params.advert_id).then(empty(response)))
       ]
     }
