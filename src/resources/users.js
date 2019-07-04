@@ -23,7 +23,6 @@ module.exports = {
   user: email => getUserByEmail(email).then(user => user &&
     {
       get: [
-        check(authentication),
         run((request, response) => getUserByEmail(request.params.email).then(formatUser).then(send(response)))
       ],
       patch: [
