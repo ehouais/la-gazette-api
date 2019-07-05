@@ -1,13 +1,12 @@
-const { check } = require('../helpers/express-rest')
-const { authentication } = require('../auth')
+const { check, resourceMW } = require('../helpers/express-rest')
+const { isAuthenticated } = require('../auth')
 const { userUri } = require('../routes')
 
 module.exports = {
-  auth: {
+  auth: resourceMW({
     get: [
-      check(authentication),
-      (request, response) => response.redirect(userUri(request.user.email))
+      check(isAuthenticated),
+      (request, response) => response.redirect(userUri(request.auth.email))
     ]
-  }
+  })
 }
-  

@@ -8,42 +8,39 @@ const formatAdvert = data => ({
   from: userUri(data.from),
   creation_date: data.creation_date
 })
-const advertFromRequest = request => ({ ...request.body, from: request.user.email })
+const advertFromRequest = request => ({ ...request.body, from: request.auth.email })
 
 const { createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
-const { check, run, empty, created, send, paramsValidity } = require('../helpers/express-rest')
-const { authentication, isAdvertOwnerOrAdmin } = require('../auth')
-checks = check => {
+const { check, empty, created, send, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
+const { isAuthenticated, isAdvertOwnerOrAdmin } = require('../auth')
+const advertExists = resourceExists(params => getAdvert(params.advert_id), 'advert')
+const createParamsValidity = paramsValidity(check => {
+  check('text').exists() && check('text').isLength({ min: 10, max: 1024})
+})
+const patchParamsValidity = paramsValidity(check => {
   check('text').isLength({ min: 10, max: 1024})
-}
+})
 
 module.exports = {
-  adverts: {
-    get: run((request, response) => getAdverts().then(formatAdverts).then(send(response))),
+  adverts: resourceMW({
+    get: (request, response) => getAdverts().then(formatAdverts).then(send(response)),
     post: [
-      check(authentication),
-      check(paramsValidity(check => {
-        check('text').isLength({ min: 10, max: 1024})
-      })),
-      run((request, response) => createAdvert(advertFromRequest(request)).then(formatAdvert).then(created(response)))
+      check(isAuthenticated, createParamsValidity),
+      (request, response) => createAdvert(advertFromRequest(request)).then(formatAdvert).then(created(response))
     ],
-  },
-  advert: id => getAdvert(id).then(advert => advert &&
-    {
-      get: run((request, response) => getAdvert(request.params.advert_id).then(formatAdvert).then(send(response))),
-      patch: [
-        check(authentication),
-        check(isAdvertOwnerOrAdmin),
-        check(paramsValidity(check => {
-          check('text').exists() && check('text').isLength({ min: 10, max: 1024})
-        })),
-        run((request, response) => patchAdvert(request.params.advert_id, request.body).then(empty(response)))
-      ],
-      delete: [
-        check(authentication),
-        check(isAdvertOwnerOrAdmin),
-        run((request, response) => deleteAdvert(request.params.advert_id).then(empty(response)))
-      ]
-    }
-  )
+  }),
+  advert: resourceMW({
+    get: [
+      check(advertExists),
+      (request, response) => Promise.resolve(request.advert).then(formatAdvert).then(send(response))
+    ],
+    patch: [
+      check(advertExists, isAdvertOwnerOrAdmin, patchParamsValidity),
+      (request, response) => patchAdvert(request.advert.id, request.body).then(empty(response))
+    ],
+    delete: [
+      check(advertExists, isAdvertOwnerOrAdmin),
+      (request, response) => deleteAdvert(request.advert.id).then(empty(response))
+    ]
+  })
 }

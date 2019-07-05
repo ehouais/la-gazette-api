@@ -1,17 +1,17 @@
-const mongo = require("mongodb")
-const DB = require('./helpers/mongo-utils')
+const { DB, objectId } = require('./helpers/mongo-utils')
 const { collection, getAll, map, count, find, findOne, insertOne, updateOne, deleteOne } = DB(process.env.MONGO_URL, process.env.MONGO_DATABASE)
 const AWS = require('aws-sdk');
-AWS.config.update({region: 'us-west-2'});
+//AWS.config.update({ region: process.env.S3_REGION });
 
 const { log } = require('./helpers/logger')
 
-const adverts = () => collection('adverts')
-const photos = () => collection('photos')
-const users = () => collection('users')
+const collectionLog = name => { log(`Accessing collection "${name}"`); return collection(name) }
+const adverts = () => collectionLog('adverts')
+const photos = () => collectionLog('photos')
+const users = () => collectionLog('users')
 
-const S3 = new AWS.S3({apiVersion: '2006-03-01'})
-const s3Params = key => ({Bucket: process.env.S3_BUCKET_NAME, Key: key})
+const S3 = new AWS.S3({ apiVersion: '2006-03-01', ...(process.env.S3_ENDPOINT && { endpoint: process.env.S3_ENDPOINT }) })
+const s3Params = key => ({ Bucket: process.env.S3_BUCKET_NAME, Key: key })
 
 const removeId = data => { if (data) delete data._id; return data }
 const transformId = data => { if (data) data.id = data._id.toString(); return removeId(data) }
@@ -21,9 +21,9 @@ module.exports = {
 
   createAdvert: params => adverts().then(insertOne(params)).then(transformId),
   getAdverts: () => adverts().then(getAll).then(map(transformId)),
-  getAdvert: id => adverts().then(findOne({ _id: mongo.ObjectId(id) })).then(advert => advert && transformId(advert)),
-  patchAdvert: (id, data) => adverts().then(updateOne({ _id: mongo.ObjectId(id) }, { $set: data })),
-  deleteAdvert: id => adverts().then(deleteOne({ _id: mongo.ObjectId(id) })), // delete corresponding photos
+  getAdvert: id => adverts().then(findOne({ _id: objectId(id) })).then(advert => advert && transformId(advert)),
+  patchAdvert: (id, data) => adverts().then(updateOne({ _id: objectId(id) }, { $set: data })),
+  deleteAdvert: id => adverts().then(deleteOne({ _id: objectId(id) })), // delete corresponding photos
 
   getAdvertPhotos: id => photos().then(find({ advert_id: id })).then(map(removeId)),
   uploadPhoto: (key, advertId, data) => new Promise((resolve, reject) => {
