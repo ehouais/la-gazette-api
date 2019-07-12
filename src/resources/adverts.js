@@ -11,7 +11,7 @@ const formatAdvert = data => ({
 const advertFromRequest = request => ({ ...request.body, from: request.auth.email })
 
 const { createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
-const { check, empty, created, send, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
+const { check, empty, created, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
 const { isAuthenticated, isAdvertOwnerOrAdmin } = require('../auth')
 const advertExists = resourceExists(params => getAdvert(params.advert_id), 'advert')
 const createParamsValidity = paramsValidity(check => {
@@ -23,7 +23,7 @@ const patchParamsValidity = paramsValidity(check => {
 
 module.exports = {
   adverts: resourceMW({
-    get: (request, response) => getAdverts().then(formatAdverts).then(send(response)),
+    get: (request, response) => getAdverts().then(formatAdverts).then(sendJson(response)),
     post: [
       check(isAuthenticated, createParamsValidity),
       (request, response) => createAdvert(advertFromRequest(request)).then(formatAdvert).then(created(response))
@@ -32,7 +32,7 @@ module.exports = {
   advert: resourceMW({
     get: [
       check(advertExists),
-      (request, response) => Promise.resolve(request.advert).then(formatAdvert).then(send(response))
+      (request, response) => Promise.resolve(request.advert).then(formatAdvert).then(sendJson(response))
     ],
     patch: [
       check(advertExists, isAdvertOwnerOrAdmin, patchParamsValidity),

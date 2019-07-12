@@ -6,8 +6,9 @@ module.exports = (data, checks) => {
   checks(name => new Proxy({}, {
     get: (target, key) => (...args) => {
       if (key == 'exists') {
-        if (args[0]) errors.push(`"${name}" is mandatory`) // check('property').exists(true)
-        return name in data
+        const exists = name in data
+        if (args[0] && !exists) errors.push(`"${name}" is mandatory`) // check('property').exists(true)
+        return exists
       } else {
         const result = Validator[key].call(this, data[name], ...args)
         if (!result) errors.push(`"${name}" value is invalid`)

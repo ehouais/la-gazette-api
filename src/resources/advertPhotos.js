@@ -1,7 +1,7 @@
 const { photoUri } = require('../routes')
 const formatAdvertPhotos = photos => photos.map(photo => photoUri(photo.key))
 
-const { check, created, send, resourceExists, resourceMW } = require('../helpers/express-rest')
+const { check, created, sendJson, resourceExists, resourceMW } = require('../helpers/express-rest')
 const { isAdvertOwnerOrAdmin } = require('../auth')
 const { getAdvert, getAdvertPhotos, uploadPhoto } = require('../dao')
 
@@ -14,7 +14,7 @@ module.exports = {
   advertPhotos: resourceMW({
     get: [
       check(advertExists),
-      (request, response) => getAdvertPhotos(request.advert.id).then(formatAdvertPhotos).then(send(response))
+      (request, response) => getAdvertPhotos(request.advert.id).then(formatAdvertPhotos).then(sendJson(response))
     ],
     post: [
       check(advertExists, isAdvertOwnerOrAdmin),

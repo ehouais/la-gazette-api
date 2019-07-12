@@ -1,33 +1,40 @@
 const basicAuth = require('basic-auth')
 const bcrypt = require('bcrypt')
-const { getAdvert, getUserByEmail, createUser } = require('./dao')
-const Validator = require('validator')
+const { getAdvert, getUserByEmail } = require('./dao')
+const jwt = require('jsonwebtoken')
+const { promisify } = require('./helpers/express-rest.js')
+const { SECRET_HEADER, SHARED_SECRET, JWT_SECRET, TOKEN_HEADER, BCRYPT_SALT_ROUNDS } = process.env
 
-const authenticate = request => new Promise((resolve, reject) => {
-  const creds = basicAuth(request)
-  if (!creds) return reject({ status: 401, message: 'Credentials not found' })
-  const { name: email, pass: password } = creds
-  if (!Validator.isEmail(email)) return reject({ status: 400, message: 'email is invalid' })
-  getUserByEmail(email)
-    .then(user => {
-      if (!user) {
-        return bcrypt.hash(password, +process.env.BCRYPT_SALT_ROUNDS)
-          .then(hash => createUser(email, hash).then(user => resolve(request.auth = { email })))
-      } else {
-        return bcrypt.compare(password, user.passhash)
-          .then(res => res ? resolve(request.auth = user) : reject({ status: 401, message: 'Invalid password' }))
-      }
-    })
-    .catch(e => reject({ status: 500, message: e.message+'\n'+e.stack }))
+// Returns a promise resolving to true (valid credentials) or false (invalid credentials)
+const secretMW = (request, response, next) => {
+  return request.method == 'OPTIONS' || request.get(SECRET_HEADER) == SHARED_SECRET ? next() : response.sendStatus(401)
+}
+const checkCredentials = (email, password) => getUserByEmail(email).then(user => user && bcrypt.compare(password, user.passhash))
+const hashPassword = password => bcrypt.hash(password, BCRYPT_SALT_ROUNDS)
+const genToken = (email, duration) => promisify(jwt.sign)({ email }, JWT_SECRET, { expiresIn: duration })
+const verifyToken = (token, cb) => jwt.verify(token, JWT_SECRET, cb)
+
+// Check procedures returning the check result or a promise resolving to the result
+// The result is false (OK) or { status, message } (error)
+
+const isAuthenticated = request => new Promise((resolve, reject) => {
+  const token = request.get(TOKEN_HEADER)
+  if (!token) return resolve({ status: 401, message: 'Token not found' })
+  verifyToken(token, (err, res) => {
+    if (err) return resolve({ status: 401, message: 'Invalid token' })
+    getUserByEmail(res.email).then(user => { request.auth = user; resolve() })
+  })
 })
+const isAdmin = request => isAuthenticated(request).then(res => res || (
+  !request.auth.admin && { status: 403 })
+)
+const isUserOrAdmin = request => isAuthenticated(request).then(res => res || (
+  !request.auth.admin && request.auth.email != request.params.email && { status: 403 })
+)
+const isAdvertOwnerOrAdmin = request => isAuthenticated(request).then(res => res || (
+  !request.auth.admin ? { status: 403 } : getAdvert(request.params.advert_id)
+    .then(advert => advert.from != request.auth.email && { status: 403 })
+  )
+)
 
-const isAuthenticated = request => authenticate(request)
-const isAdmin = request => authenticate(request).then(auth => auth.admin || Promise.reject({ status: 403 }))
-const isUserOrAdmin = request => authenticate(request).then(auth => auth.admin || auth.email == request.params.email || Promise.reject({ status: 403 }))
-const isAdvertOwnerOrAdmin = request => authenticate(request).then(auth => auth.admin || new Promise((resolve, reject) => {
-  getAdvert(request.params.advert_id)
-    .then(advert => advert.from == auth.email || reject({ status: 403 }))
-    .catch(e => reject({ status: 500, message: e.message }))
-}))
-
-module.exports = { isAuthenticated, isAdmin, isAdvertOwnerOrAdmin, isUserOrAdmin }
+module.exports = { secretMW, checkCredentials, isAuthenticated, isAdmin, isAdvertOwnerOrAdmin, isUserOrAdmin, genToken, verifyToken }
