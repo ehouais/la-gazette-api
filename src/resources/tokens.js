@@ -5,9 +5,6 @@ const Validator = require('validator')
 const sendMail = require('../helpers/mail')
 
 const tokenExists = resourceExists(params => verifyToken(params.token), 'token')
-const formatToken = id => ({
-  id
-})
 
 module.exports = {
   tokens: resourceMW({
@@ -28,6 +25,7 @@ module.exports = {
           return checkCredentials(email, password)
             .then(res => res
               ? genToken(email, '1h').then(token => ({
+                self: tokenUri(token),
                 id: token,
                 user: userUri(email),
                 expiration_date: '+1h'
