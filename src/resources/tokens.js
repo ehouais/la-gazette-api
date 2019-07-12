@@ -1,13 +1,22 @@
-const { check, resourceMW, resourceExists, sendText } = require('../helpers/express-rest')
+const { check, resourceMW, resourceExists, sendText, sendJson } = require('../helpers/express-rest')
 const { usersUri, userUri, tokenUri } = require('../routes')
-const { checkCredentials, genToken, verifyToken } = require('../auth')
+const { checkCredentials, genToken, verifyToken, isAdmin } = require('../auth')
 const Validator = require('validator')
 const sendMail = require('../helpers/mail')
 
 const tokenExists = resourceExists(params => verifyToken(params.token), 'token')
+const formatToken = id => ({
+  id
+})
 
 module.exports = {
   tokens: resourceMW({
+    get: [
+      check(isAdmin),
+      (request, response) => {
+        response.sendStatus(501)
+      }
+    ],
     post: [
       (request, response) => {
         const { email, password } = request.body
@@ -18,7 +27,11 @@ module.exports = {
         if (password)
           return checkCredentials(email, password)
             .then(res => res
-              ? genToken(email, '1h').then(tokenUri).then(sendText(response))
+              ? genToken(email, '1h').then(token => ({
+                id: token,
+                user: userUri(email),
+                expiration_date: '+1h'
+              })).then(sendJson(response))
               : response.status(400).end('Invalid credentials')
             )
 
@@ -28,9 +41,8 @@ module.exports = {
 
         return genToken(email, '15m')
           .then(tokenUri)
-          .then(sendText(response))
-          /*.then(url => sendMail(email, `La Gazette`, url, `<a href="${url}">URL de confirmation</a>`))
-          .then(info => response.end(`An email has been sent to ${email}`))*/
+          .then(url => sendMail(email, `La Gazette`, url, `<a href="${url}">URL de confirmation</a>`))
+          .then(info => response.end(`An email has been sent to ${email}`))
       }
     ]
   }),

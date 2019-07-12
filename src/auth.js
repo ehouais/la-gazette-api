@@ -37,4 +37,4 @@ const isAdvertOwnerOrAdmin = request => isAuthenticated(request).then(res => res
   )
 )
 
-module.exports = { secretMW, checkCredentials, isAuthenticated, isAdmin, isAdvertOwnerOrAdmin, isUserOrAdmin, genToken, verifyToken }
+module.exports = { secretMW, hashPassword, checkCredentials, isAuthenticated, isAdmin, isAdvertOwnerOrAdmin, isUserOrAdmin, genToken, verifyToken }
