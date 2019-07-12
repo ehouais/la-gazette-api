@@ -29,8 +29,8 @@ module.exports = {
       check(isAuthenticated, passwordValidity),
       (request, response) => hashPassword(request.body.password)
         .then(hash => createUser(request.auth.email, hash))
-        .then(formatUser)
-        .then(sendJson(response))
+        .then(user => userUri(user.email))
+        .then(created(response))
     ]
   }),
   user: resourceMW({

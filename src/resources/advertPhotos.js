@@ -20,6 +20,7 @@ module.exports = {
       check(advertExists, isAdvertOwnerOrAdmin),
       (request, response) => upload(request)
         .then(({ filename, buffer }) => uploadPhoto(keygen(filename), request.advert.id, buffer))
+        .then(photo => photoUri(photo.key))
         .then(created(response))
     ]
   })

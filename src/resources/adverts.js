@@ -26,7 +26,7 @@ module.exports = {
     get: (request, response) => getAdverts().then(formatAdverts).then(sendJson(response)),
     post: [
       check(isAuthenticated, createParamsValidity),
-      (request, response) => createAdvert(advertFromRequest(request)).then(formatAdvert).then(created(response))
+      (request, response) => createAdvert(advertFromRequest(request)).then(advert => advertUri(advert.id)).then(created(response))
     ],
   }),
   advert: resourceMW({

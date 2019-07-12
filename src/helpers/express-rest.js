@@ -55,7 +55,10 @@ module.exports = {
     return errors.length > 0 && { status: 400, message: errors.join('\n') }
   },
   empty: response => () => response.sendStatus(204),
-  created: response => data => response.status(201).json(data),
+  created: response => data => {
+    if (typeof data != 'string') response.status(201).json(data)
+    else response.set('Location', data).sendStatus(204)
+  },
   sendJson: response => data => response.json(data),
   sendText: response => text => response.end(text),
   resourceMW,
