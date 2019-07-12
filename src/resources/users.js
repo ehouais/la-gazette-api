@@ -9,22 +9,34 @@ const formatUser = data => ({
   creation_date: data.creation_date
 })
 
-const { check, empty, send, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
-const { isAuthenticated, isAdmin, isUserOrAdmin } = require('../auth')
-const { getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
+const { check, empty, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
+const { hashPassword, isAuthenticated, isAdmin, isUserOrAdmin } = require('../auth')
+const { createUser, getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
 const userExists = resourceExists(params => getUserByEmail(params.email), 'user')
+const passwordValidity = request => {
+  if (!request.body.password) return { status: 400, message: 'Password is mandatory' }
+  // TODO: decide password strength policy
+  if (request.body.password.length < 8) return { status: 400, message: 'Invalid password'}
+}
 
 module.exports = {
   users: resourceMW({
     get: [
       check(isAdmin),
-      (request, response) => getUsers().then(formatUsers).then(send(response))
+      (request, response) => getUsers().then(formatUsers).then(sendJson(response))
+    ],
+    post: [
+      check(isAuthenticated, passwordValidity),
+      (request, response) => hashPassword(request.body.password)
+        .then(hash => createUser(request.auth.email, hash))
+        .then(formatUser)
+        .then(sendJson(response))
     ]
   }),
   user: resourceMW({
     get: [
       check(userExists),
-      (request, response) => Promise.resolve(request.user).then(formatUser).then(send(response))
+      (request, response) => Promise.resolve(request.user).then(formatUser).then(sendJson(response))
     ],
     patch: [
       check(userExists, isUserOrAdmin, paramsValidity(check => {

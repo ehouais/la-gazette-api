@@ -7,24 +7,31 @@ dao.test()
     // Instantiate express application
     const express = require('express')
     const app = express()
+    const { secretMW } = require('./src/auth')
 
     // Register several utilitary middlewares
     app
+      // Check shared secret in headers
+      //.use(secretMW)
+      // Handle CORS headers
       .use(require('cors')())
-      .use(express.urlencoded({ extended: true })) // auto-parse body when content-type is 'application/x-www-form-urlencoded'
-      .use(express.json()) // auto-parse body when content-type is 'application/json'
+      // Auto-parse body when content-type is 'application/x-www-form-urlencoded'
+      .use(express.urlencoded({ extended: true }))
+      // Auto-parse body when content-type is 'application/json'
+      .use(express.json())
 
     // Register routes and corresponding resources
-    const { homeRoute, authRoute, advertsRoute, advertRoute, advertPhotosRoute, photosRoute, photoRoute, usersRoute, userRoute } = require('./src/routes')
+    const { homeRoute, tokensRoute, tokenRoute, advertsRoute, advertRoute, advertPhotosRoute, photosRoute, photoRoute, usersRoute, userRoute } = require('./src/routes')
     const { home } = require('./src/resources/home')
-    const { auth } = require('./src/resources/auth')
+    const { tokens, token } = require('./src/resources/tokens')
     const { adverts, advert } = require('./src/resources/adverts')
     const { users, user } = require('./src/resources/users')
     const { advertPhotos } = require('./src/resources/advertPhotos')
     const { photos, photo } = require('./src/resources/photos')
     app
       .all(homeRoute, home)
-      .all(authRoute, auth)
+      .all(tokensRoute, tokens)
+      .all(tokenRoute, token)
       .all(advertsRoute, adverts)
       .all(advertRoute, advert)
       .all(advertPhotosRoute, advertPhotos)
