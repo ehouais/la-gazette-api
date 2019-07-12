@@ -1,8 +1,9 @@
-const { check, resourceMW, resourceExists, sendText, sendJson } = require('../helpers/express-rest')
+const { check, resourceMW, resourceExists, sendJson } = require('../helpers/express-rest')
 const { usersUri, userUri, tokenUri } = require('../routes')
 const { checkCredentials, genToken, verifyToken, isAdmin } = require('../auth')
+const { getUserByEmail } = require('../dao')
 const Validator = require('validator')
-const sendMail = require('../helpers/mail')
+//const sendMail = require('../helpers/mail')
 
 const tokenExists = resourceExists(params => verifyToken(params.token), 'token')
 
@@ -23,27 +24,36 @@ module.exports = {
         // email+password => user already exists => Long-lived token returned immediately
         if (password)
           return checkCredentials(email, password)
-            .then(res => res
-              ? genToken(email, '1h').then(token => ({
-                self: tokenUri(token),
-                id: token,
-                user: userUri(email),
-                expiration_date: '+1h'
-              })).then(sendJson(response))
-              : response.status(400).end('Invalid credentials')
-            )
+            .then(res => res && genToken(email, '1h'))
+            .then(token => token && {
+              self: tokenUri(token),
+              id: token,
+              user: userUri(email),
+              expiration_date: '+1h'
+            })
+            .then(token => token ? sendJson(response)(token) : response.status(400).end('Invalid credentials'))
 
         // no password => user creation or password reset => check if email is valid & short-lived token sent by email
         if (!Validator.isEmail(email) || !email.match(/@orange.com$/))
           return response.status(400).end('Invalid email address')
 
-        return genToken(email, '15m')
+        return getUserByEmail(email)
+          .then(user => !user && genToken(email, '15m'))
+          .then(token => token && {
+            self: tokenUri(token),
+            id: token,
+            user: userUri(email),
+            expiration_date: '+15mn'
+          })
+          .then(token => token ? sendJson(response)(token) : response.status(400).end('User already exists'))
+
+        /*return genToken(email, '15m')
           .then(tokenUri)
           .then(url => sendMail(email, `La Gazette`, url, `<a href="${url}">URL de confirmation</a>`))
           .then(info => {
             console.log(info)
             response.end(`An email has been sent to ${email}`)
-          })
+          })*/
       }
     ]
   }),
