@@ -40,7 +40,10 @@ module.exports = {
         return genToken(email, '15m')
           .then(tokenUri)
           .then(url => sendMail(email, `La Gazette`, url, `<a href="${url}">URL de confirmation</a>`))
-          .then(info => response.end(`An email has been sent to ${email}`))
+          .then(info => {
+            console.log(info)
+            response.end(`An email has been sent to ${email}`)
+          })
       }
     ]
   }),
