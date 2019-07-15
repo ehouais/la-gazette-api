@@ -12,7 +12,7 @@ dao.test()
     // Register several utilitary middlewares
     app
       // Check shared secret in headers
-      //.use(secretMW)
+      .use(secretMW)
       // Handle CORS headers
       .use(require('cors')())
       // Auto-parse body when content-type is 'application/x-www-form-urlencoded'
