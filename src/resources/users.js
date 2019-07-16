@@ -7,12 +7,12 @@ const formatUser = data => ({
   lastname: data.lastname,
   email: data.email,
   avatar: data.avatar,
-  creation_date: data.creation_date
+  creation_date: timestamp(data.creation_date)
 })
 
 const { asyncMW, check, empty, created, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
 const { Authenticated, AuthAdmin, AuthUserOrAdmin } = require('../auth')
-const { createUser, getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
+const { timestamp, createUser, getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
 const userExists = resourceExists(params => getUserByEmail(params.email), 'user')
 const passwordValidity = request => {
   if (!request.body.password) return { status: 400, message: 'Password is mandatory' }

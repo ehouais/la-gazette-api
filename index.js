@@ -23,13 +23,14 @@ dao.test()
       .use(express.json())
 
     // Register routes and corresponding resources
-    const { homeRoute, tokensRoute, tokenRoute, advertsRoute, advertRoute, advertPhotosRoute, photosRoute, photoRoute, usersRoute, userRoute } = require('./src/routes')
+    const { homeRoute, tokensRoute, advertsRoute, advertRoute, advertPhotosRoute, photosRoute, photoRoute, usersRoute, userRoute, statsRoute } = require('./src/routes')
     const { home } = require('./src/resources/home')
     const { tokens } = require('./src/resources/tokens')
     const { adverts, advert } = require('./src/resources/adverts')
     const { users, user } = require('./src/resources/users')
     const { advertPhotos } = require('./src/resources/advertPhotos')
     const { photos, photo } = require('./src/resources/photos')
+    const { stats } = require('./src/resources/stats')
     app
       .all(homeRoute, home)
       .all(tokensRoute, tokens)
@@ -40,6 +41,7 @@ dao.test()
       .all(photoRoute, photo)
       .all(usersRoute, users)
       .all(userRoute, user)
+      .all(statsRoute, stats)
 
     // Start server
     app.listen(PORT, () => log(`Server listening on port ${PORT}`))

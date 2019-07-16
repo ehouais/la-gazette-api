@@ -15,15 +15,15 @@ module.exports = {
     
     return {
       collection: name => db().then(db => db.collection(name)),
-      getAll: collection => collection.find({}).limit(100).toArray(),
+      getAll: limit => collection => collection.find({}).limit(limit).toArray(),
       map: mapper => items => items.map(mapper),
       count: collection => collection.countDocuments(),
       find: query => collection => collection.find(query).toArray(),
       findOne: query => collection => collection.findOne(query),
       insertOne: doc => collection => collection
-        .insertOne({ ...doc, creation_date: new Date().getTime() })
+        .insertOne({ ...doc, creation_date: new Date() })
         .then(result => result.ops[0]),
-      updateOne: (query, patch) => collection => collection.updateOne(query, patch),
+      updateOne: (query, patch) => collection => collection.updateOne(query, { ...patch, $currentDate: { last_modif_date: true } }),
       deleteOne: query => collection => collection.deleteOne(query)
     }
   }

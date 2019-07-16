@@ -10,6 +10,7 @@ const photoRoute          = '/photos/:photo_id'
 const usersRoute          = '/users'
 const userRoute           = '/users/:email'
 const userAdvertsRoute    = '/users/:email/adverts'
+const statsRoute          = '/stats'
 
 const root = process.env.ROOT_URI
 
@@ -23,5 +24,6 @@ module.exports = {
   photoRoute          , photoUri: Uri(root, photoRoute),
   usersRoute          , usersUri: Uri(root, usersRoute),
   userRoute           , userUri: Uri(root, userRoute),
-  userAdvertsRoute    , userAdvertsUri: Uri(root, userAdvertsRoute)
+  userAdvertsRoute    , userAdvertsUri: Uri(root, userAdvertsRoute),
+  statsRoute          , statsUri: Uri(root, statsRoute)
 }

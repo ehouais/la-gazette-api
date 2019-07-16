@@ -2,15 +2,14 @@ const { advertsUri, advertUri, advertPhotosUri, userUri } = require('../routes')
 const formatAdverts = adverts => adverts.map(formatAdvert)
 const formatAdvert = data => ({
   self: advertUri(data.id),
-  collection: advertsUri(),
   text: data.text || data.title,
   photos: advertPhotosUri(data.id),
   from: userUri(data.from),
-  creation_date: data.creation_date
+  creation_date: timestamp(data.creation_date)
 })
 const advertFromRequest = request => ({ ...request.body, from: request.auth.email })
 
-const { createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
+const { timestamp, createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
 const { asyncMW, check, empty, created, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
 const { Authenticated, AuthAdvertOwnerOrAdmin } = require('../auth')
 const advertExists = resourceExists(params => getAdvert(params.advert_id), 'advert')
