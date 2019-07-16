@@ -6,6 +6,9 @@ const { AuthAdmin, AuthAdvertOwnerOrAdmin } = require('../auth')
 const { getPhotos, getPhoto, getPhotoStream } = require('../dao')
 const photoExists = resourceExists(params => getPhoto(params.photo_id), 'photo')
 
+const mime = require('mime')
+const path = require('path')
+
 module.exports = {
   photos: resourceMW({
     get: [
@@ -16,7 +19,10 @@ module.exports = {
   photo: resourceMW({
     get: [
       check(photoExists),
-      asyncMW((request, response) => getPhotoStream(request.photo.key).then(stream => stream.pipe(response)))
+      asyncMW((request, response) => {
+        response.set('Content-Type', mime.getType(path.extname(request.photo.key).slice(1)))
+        return getPhotoStream(request.photo.key).then(stream => stream.pipe(response))
+      })
     ],
     delete: [
       check(photoExists, AuthAdvertOwnerOrAdmin),
