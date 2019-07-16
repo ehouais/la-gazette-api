@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt')
 const Validator = require('validator')
-const { resourceMW } = require('../helpers/express-rest')
+const { asyncMW, resourceMW } = require('../helpers/express-rest')
 const { userUri } = require('../routes')
 const { genToken, verifyToken } = require('../auth')
 const { getUserByEmail } = require('../dao')
@@ -15,16 +15,16 @@ const checkCredentials = (email, password) => getUserByEmail(email).then(user =>
 module.exports = {
   tokens: resourceMW({
     get: [
-      async (request, response) => {
+      asyncMW(async (request, response) => {
         const token = Object.keys(request.query)[0]
         if (!token) return response.sendStatus(501)
         const data = await verifyToken(token)
         if (!data) return response.status(400).end('Invalid token')
         return response.json(formatToken(token, data))
-      }
+      })
     ],
     post: [
-      async (request, response) => {
+      asyncMW(async (request, response) => {
         const { email, password } = request.body
         if (!email)
           return response.status(400).end('Email not found')
@@ -47,7 +47,7 @@ module.exports = {
         const data = { email,  exp: Math.floor(Date.now() / 1000) + (15 * 60) }
         const token = await genToken(data)
         return response.json(formatToken(token, data))
-      }
+      })
     ]
   })
 }

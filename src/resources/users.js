@@ -10,7 +10,7 @@ const formatUser = data => ({
   creation_date: data.creation_date
 })
 
-const { check, empty, created, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
+const { asyncMW, check, empty, created, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
 const { Authenticated, AuthAdmin, AuthUserOrAdmin } = require('../auth')
 const { createUser, getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
 const userExists = resourceExists(params => getUserByEmail(params.email), 'user')
@@ -20,8 +20,6 @@ const passwordValidity = request => {
   if (request.body.password.length < 8) return { status: 400, message: 'Invalid password'}
 }
 const hashPassword = password => bcrypt.hash(password, +process.env.BCRYPT_SALT_ROUNDS)
-
-const asyncMW = middleware => (request, response) => middleware(request, response).catch(e => { console.log(e); response.sendStatus(500) })
 
 module.exports = {
   users: resourceMW({
@@ -40,9 +38,7 @@ module.exports = {
   user: resourceMW({
     get: [
       check(userExists),
-      asyncMW((request, response) => Promise.resolve(request.user)
-        .then(formatUser)
-        .then(sendJson(response)))
+      (request, response) => sendJson(response)(formatUser(request.user))
     ],
     patch: [
       check(userExists, AuthUserOrAdmin, paramsValidity(check => {

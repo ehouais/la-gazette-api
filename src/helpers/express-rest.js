@@ -28,6 +28,11 @@ const resourceMW = resource  => (request, response) => {
 }
 
 module.exports = {
+  asyncMW: middleware => (request, response, next) =>
+    middleware(request, response)
+      .then(res => next && next())
+      .catch(e => { console.log(e); response.sendStatus(500) })
+  ,
   // Generate a MW based on a list of check procedures,
   // Each check procedure must return the result or a promise resolving with the result
   // The result is FALSY (no error) or { status, message }
