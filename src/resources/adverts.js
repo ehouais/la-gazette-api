@@ -12,7 +12,7 @@ const advertFromRequest = request => ({ ...request.body, from: request.auth.emai
 
 const { createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
 const { check, empty, created, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
-const { isAuthenticated, isAdvertOwnerOrAdmin } = require('../auth')
+const { Authenticated, AuthAdvertOwnerOrAdmin } = require('../auth')
 const advertExists = resourceExists(params => getAdvert(params.advert_id), 'advert')
 const createParamsValidity = paramsValidity(check => {
   check('text').exists() && check('text').isLength({ min: 10, max: 1024})
@@ -25,7 +25,7 @@ module.exports = {
   adverts: resourceMW({
     get: (request, response) => getAdverts().then(formatAdverts).then(sendJson(response)),
     post: [
-      check(isAuthenticated, createParamsValidity),
+      check(Authenticated, createParamsValidity),
       (request, response) => createAdvert(advertFromRequest(request)).then(advert => advertUri(advert.id)).then(created(response))
     ],
   }),
@@ -35,11 +35,11 @@ module.exports = {
       (request, response) => Promise.resolve(request.advert).then(formatAdvert).then(sendJson(response))
     ],
     patch: [
-      check(advertExists, isAdvertOwnerOrAdmin, patchParamsValidity),
+      check(advertExists, AuthAdvertOwnerOrAdmin, patchParamsValidity),
       (request, response) => patchAdvert(request.advert.id, request.body).then(empty(response))
     ],
     delete: [
-      check(advertExists, isAdvertOwnerOrAdmin),
+      check(advertExists, AuthAdvertOwnerOrAdmin),
       (request, response) => deleteAdvert(request.advert.id).then(empty(response))
     ]
   })

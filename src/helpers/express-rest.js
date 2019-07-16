@@ -21,11 +21,10 @@ const resourceMW = resource  => (request, response) => {
   let mw = resource[method]
   if (!mw) return response.sendStatus(405)
   if (Array.isArray(mw)) mw = chain(...mw)
-  mw(request, response).catch(error => {
-    if (typeof error == 'string') log(`Error: ${error}`)
-    else log('Error', error)
-    response.sendStatus(500)
-  })
+  mw(request, response)
+  /* if (typeof error == 'string') log(`Error: ${error}`)
+  else log('Error', error)
+  response.sendStatus(500) */
 }
 
 module.exports = {
@@ -36,7 +35,9 @@ module.exports = {
     checkProcs.reduce(
       (chain, proc) => chain.then(e => e || proc(request)),
       Promise.resolve()
-    ).then(e => e ? response.status(e.status).end(e.message) : next() )
+    ).then(e => 
+      e ? response.status(e.status).end(e.message) : next()
+    )
   ,
   // Generate a check procedure (see above) based on a function
   // The function must return the result or a promise resolving with the result

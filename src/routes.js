@@ -2,7 +2,6 @@ const { Uri } = require('./helpers/express-rest')
 
 const homeRoute           = '/'
 const tokensRoute         = '/tokens'
-const tokenRoute          = '/tokens/:token'
 const advertsRoute        = '/adverts'
 const advertRoute         = '/adverts/:advert_id'
 const advertPhotosRoute   = '/adverts/:advert_id/photos'
@@ -17,7 +16,6 @@ const root = process.env.ROOT_URI
 module.exports = {
   homeRoute           , homeUri: Uri(root, homeRoute),
   tokensRoute         , tokensUri: Uri(root, tokensRoute),
-  tokenRoute          , tokenUri: Uri(root, tokenRoute),
   advertsRoute        , advertsUri: Uri(root, advertsRoute),
   advertRoute         , advertUri: Uri(root, advertRoute),
   advertPhotosRoute   , advertPhotosUri: Uri(root, advertPhotosRoute),
