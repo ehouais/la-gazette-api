@@ -16,11 +16,11 @@ module.exports = {
   photo: resourceMW({
     get: [
       check(photoExists),
-      asyncMW((request, response) => getPhotoStream(request.photo.id).then(stream => stream.pipe(response)))
+      asyncMW((request, response) => getPhotoStream(request.photo.key).then(stream => stream.pipe(response)))
     ],
     delete: [
       check(photoExists, AuthAdvertOwnerOrAdmin),
-      asyncMW((request, response) => deletePhoto(request.photo.id).then(empty(response)))
+      asyncMW((request, response) => deletePhoto(request.photo.key).then(empty(response)))
     ]
   })
 }
