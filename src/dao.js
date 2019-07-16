@@ -21,7 +21,7 @@ module.exports = {
   timestamp: value => Math.round((value.getTime ? value.getTime() : value) / 1000),
 
   createAdvert: params => adverts().then(insertOne(params)).then(transformId),
-  getAdverts: () => adverts().then(getAll(process.env.NB_ADVERTS_MAX)).then(map(transformId)),
+  getAdverts: () => adverts().then(getAll(+process.env.NB_ADVERTS_MAX)).then(map(transformId)),
   getAdvert: id => adverts().then(findOne({ _id: objectId(id) })).then(advert => advert && transformId(advert)),
   patchAdvert: (id, data) => adverts().then(updateOne({ _id: objectId(id) }, { $set: data })),
   deleteAdvert: id => adverts().then(deleteOne({ _id: objectId(id) })), // TODO: delete corresponding photos
@@ -35,7 +35,7 @@ module.exports = {
     })
   }),
 
-  getPhotos: () => photos().then(getAll(process.env.NB_PHOTOS_MAX)),
+  getPhotos: () => photos().then(getAll(+process.env.NB_PHOTOS_MAX)),
   getPhoto: key => photos().then(findOne({ key })).then(removeId),
   getPhotoStream: key => Promise.resolve(S3.getObject(s3Params(key)).createReadStream()),
   deletePhoto: key => new Promise((resolve, reject) => {
@@ -47,7 +47,7 @@ module.exports = {
   getNbPhotos: () => photos().then(count),
 
   createUser: (email, passhash) => users().then(insertOne({ email, passhash })),
-  getUsers: () => users().then(getAll(process.env.NB_USERS_MAX)),
+  getUsers: () => users().then(getAll(+process.env.NB_USERS_MAX)),
   getUserByEmail: email => users().then(findOne({ email })).then(removeId),
   patchUser: (email, data) => users().then(updateOne({ email }, { $set: data })),
   deleteUser: email => users().then(deleteOne({ email })),
