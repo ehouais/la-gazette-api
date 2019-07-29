@@ -16,8 +16,8 @@ module.exports = {
     return {
       status: () => db().then(db => db.admin().serverStatus()),
       collection: name => db().then(db => db.collection(name)),
-      get: (query, limit) => collection => collection.find(query).limit(limit).toArray(),
-      getAll: limit => collection => collection.find({}).limit(limit).toArray(),
+      get: (query, limit) => collection => collection.find(query).limit(limit).sort({ creation_date: -1 }).toArray(),
+      getAll: limit => get({}, limit),
       map: mapper => items => items.map(mapper),
       count: collection => collection.countDocuments(),
       find: query => collection => collection.find(query).toArray(),
