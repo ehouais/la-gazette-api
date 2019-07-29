@@ -1,11 +1,18 @@
-const { advertsUri, advertUri, advertPhotosUri, userUri } = require('../routes')
-const formatAdverts = adverts => adverts.map(formatAdvert)
+const { advertUri, advertPhotosUri, userUri } = require('../routes')
+const formatAdverts = adverts => adverts.map(formatListAdvert)
 const formatAdvert = data => ({
   self: advertUri(data.id),
   text: data.text || data.title,
-  photos: advertPhotosUri(data.id),
   from: userUri(data.from),
   creation_date: timestamp(data.creation_date)
+})
+const formatListAdvert = data => ({
+  ...formatAdvert(data),
+  ...(data.thumbnail && { thumbnail: photoUri(data.thumbnail) })
+})
+const formatFullAdvert = data => ({
+  ...formatAdvert(data),
+  photos: advertPhotosUri(data.id),
 })
 const advertFromRequest = request => ({ ...request.body, from: request.auth.email })
 
@@ -22,7 +29,10 @@ const patchParamsValidity = paramsValidity(check => {
 
 module.exports = {
   adverts: resourceMW({
-    get: (request, response) => getAdverts().then(formatAdverts).then(sendJson(response)),
+    get: (request, response) => {
+      const { from, contains } = request.query
+      return getAdverts(from, contains.split(',').join(' ')).then(formatAdverts).then(sendJson(response))
+    },
     post: [
       check(Authenticated, createParamsValidity),
       asyncMW((request, response) => createAdvert(advertFromRequest(request)).then(advert => advertUri(advert.id)).then(created(response)))
@@ -31,7 +41,7 @@ module.exports = {
   advert: resourceMW({
     get: [
       check(advertExists),
-      (request, response) => sendJson(response)(formatAdvert(request.advert))
+      (request, response) => sendJson(response)(formatFullAdvert(request.advert))
     ],
     patch: [
       check(advertExists, AuthAdvertOwnerOrAdmin, patchParamsValidity),

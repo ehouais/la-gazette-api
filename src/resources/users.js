@@ -1,12 +1,16 @@
 const bcrypt = require('bcrypt')
-const { userUri } = require('../routes')
-const formatUsers = users => users.map(formatUser)
-const formatUser = data => ({
+const { userUri, userAdvertsUri } = require('../routes')
+const formatUsers = users => users.map(formatListUser)
+const formatListUser = data => ({
   self: userUri(data.email),
   firstname: data.firstname,
   lastname: data.lastname,
   email: data.email,
   avatar: data.avatar,
+})
+const formatFullUser = data => ({
+  ...formatListUser(data),
+  adverts: userAdvertsUri(data.email),
   creation_date: timestamp(data.creation_date)
 })
 
@@ -15,7 +19,7 @@ const { Authenticated, AuthAdmin, AuthUserOrAdmin } = require('../auth')
 const { timestamp, createUser, getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
 const userExists = resourceExists(params => getUserByEmail(params.email), 'user')
 const passwordValidity = request => {
-  if (!request.body.password) return { status: 400, message: 'Password is mandatory' }
+  if (!request.body.password) return { status: 400, message: 'Password not found' }
   // TODO: decide password strength policy
   if (request.body.password.length < 8) return { status: 400, message: 'Invalid password'}
 }
@@ -38,7 +42,7 @@ module.exports = {
   user: resourceMW({
     get: [
       check(userExists),
-      (request, response) => sendJson(response)(formatUser(request.user))
+      (request, response) => sendJson(response)(formatFullUser(request.user))
     ],
     patch: [
       check(userExists, AuthUserOrAdmin, paramsValidity(check => {

@@ -1,4 +1,4 @@
-const { getAdvert, getUserByEmail } = require('./dao')
+const { getAdvert, getUserByEmail, patchUser } = require('./dao')
 
 // JWT methods promisification
 const jwt = require('jsonwebtoken')
@@ -14,6 +14,7 @@ const Authenticated = async (request, checkRole) => {
   const data = await verifyToken(token)
   if (!data) return { status: 401, message: 'Invalid token' }
   request.auth = await getUserByEmail(data.email) || { email: data.email }
+  await patchUser(data.email, { last_auth: new Date() })
   if (checkRole && ! await checkRole(request)) return { status: 403 }
 }
 const isAdmin = request => request.auth.admin

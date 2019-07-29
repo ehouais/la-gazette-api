@@ -2,9 +2,16 @@ const { log } = require('./src/helpers/logger')
 const { SECRET_HEADER, SHARED_SECRET, PORT } = process.env
 
 // Test DB connection
-const dao = require('./src/dao')
-dao.test()
-  .then(_ => {
+const { version, ensureAdvertsIndex } = require('./src/dao');
+(async () => {
+  try {
+    // Test connection to mongo DB
+    const vers = await version()
+    log(`Connected to MongoDB server v${vers}`)
+
+    // Ensures that a text index is created on the "adverts" collection
+    await ensureAdvertsIndex()
+
     // Instantiate express application
     const express = require('express')
     const app = express()
@@ -45,7 +52,7 @@ dao.test()
 
     // Start server
     app.listen(PORT, () => log(`Server listening on port ${PORT}`))
-  })
-  .catch(e => {
+  } catch(e) {
     log(`Application could not start: `, e)
-  })
+  }
+})()

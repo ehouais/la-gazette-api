@@ -14,7 +14,9 @@ module.exports = {
     }
     
     return {
+      status: () => db().then(db => db.admin().serverStatus()),
       collection: name => db().then(db => db.collection(name)),
+      get: (query, limit) => collection => collection.find(query).limit(limit).toArray(),
       getAll: limit => collection => collection.find({}).limit(limit).toArray(),
       map: mapper => items => items.map(mapper),
       count: collection => collection.countDocuments(),
@@ -24,7 +26,8 @@ module.exports = {
         .insertOne({ ...doc, creation_date: new Date() })
         .then(result => result.ops[0]),
       updateOne: (query, patch) => collection => collection.updateOne(query, { ...patch, $currentDate: { last_modif_date: true } }),
-      deleteOne: query => collection => collection.deleteOne(query)
+      deleteOne: query => collection => collection.deleteOne(query),
+      createIndex: (cols, options) => collection => collection.createIndex(cols, options)
     }
   }
 }
