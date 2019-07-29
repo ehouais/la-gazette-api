@@ -31,7 +31,8 @@ module.exports = {
   adverts: resourceMW({
     get: (request, response) => {
       const { from, contains } = request.query
-      return getAdverts(from, contains.split(',').join(' ')).then(formatAdverts).then(sendJson(response))
+      if (contains) contains = contains.split(',').join(' ')
+      return getAdverts(from, contains).then(formatAdverts).then(sendJson(response))
     },
     post: [
       check(Authenticated, createParamsValidity),
