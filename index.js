@@ -6,11 +6,11 @@ const { version, ensureAdvertsIndex } = require('./src/dao');
 (async () => {
   try {
     // Test connection to mongo DB
-    const vers = await version()
-    log(`Connected to MongoDB server v${vers}`)
+    //const vers = await version()
+    //log(`Connected to MongoDB server v${vers}`)
 
     // Ensures that a text index is created on the "adverts" collection
-    //await ensureAdvertsIndex()
+    await ensureAdvertsIndex()
 
     // Instantiate express application
     const express = require('express')
