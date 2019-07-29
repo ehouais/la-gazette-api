@@ -10,7 +10,7 @@ const { version, ensureAdvertsIndex } = require('./src/dao');
     log(`Connected to MongoDB server v${vers}`)
 
     // Ensures that a text index is created on the "adverts" collection
-    await ensureAdvertsIndex()
+    //await ensureAdvertsIndex()
 
     // Instantiate express application
     const express = require('express')
