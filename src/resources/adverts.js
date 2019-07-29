@@ -30,7 +30,7 @@ const patchParamsValidity = paramsValidity(check => {
 module.exports = {
   adverts: resourceMW({
     get: (request, response) => {
-      const { from, contains } = request.query
+      let { from, contains } = request.query
       if (contains) contains = contains.split(',').join(' ')
       return getAdverts(from, contains).then(formatAdverts).then(sendJson(response))
     },
