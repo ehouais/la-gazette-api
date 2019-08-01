@@ -12,11 +12,12 @@ module.exports = {
       return mongoClient.connect(`${dbUrl}/${dbName}`, { useNewUrlParser: true })
         .then(client => DB = client.db(dbName))
     }
+    const get = (query, limit) => collection => collection.find(query).limit(limit).sort({ creation_date: -1 }).toArray()
     
     return {
       status: () => db().then(db => db.admin().serverStatus()),
       collection: name => db().then(db => db.collection(name)),
-      get: (query, limit) => collection => collection.find(query).limit(limit).sort({ creation_date: -1 }).toArray(),
+      get,
       getAll: limit => get({}, limit),
       map: mapper => items => items.map(mapper),
       count: collection => collection.countDocuments(),

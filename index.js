@@ -5,10 +5,6 @@ const { SECRET_HEADER, SHARED_SECRET, PORT } = process.env
 const { version, ensureAdvertsIndex } = require('./src/dao');
 (async () => {
   try {
-    // Test connection to mongo DB
-    //const vers = await version()
-    //log(`Connected to MongoDB server v${vers}`)
-
     // Ensures that a text index is created on the "adverts" collection
     await ensureAdvertsIndex()
 
@@ -30,11 +26,11 @@ const { version, ensureAdvertsIndex } = require('./src/dao');
       .use(express.json())
 
     // Register routes and corresponding resources
-    const { homeRoute, tokensRoute, advertsRoute, advertRoute, advertPhotosRoute, photosRoute, photoRoute, usersRoute, userRoute, statsRoute } = require('./src/routes')
+    const { homeRoute, tokensRoute, advertsRoute, advertRoute, advertPhotosRoute, photosRoute, photoRoute, usersRoute, userRoute, userAdvertsRoute, statsRoute } = require('./src/routes')
     const { home } = require('./src/resources/home')
     const { tokens } = require('./src/resources/tokens')
     const { adverts, advert } = require('./src/resources/adverts')
-    const { users, user } = require('./src/resources/users')
+    const { users, user, userAdverts } = require('./src/resources/users')
     const { advertPhotos } = require('./src/resources/advertPhotos')
     const { photos, photo } = require('./src/resources/photos')
     const { stats } = require('./src/resources/stats')
@@ -48,6 +44,7 @@ const { version, ensureAdvertsIndex } = require('./src/dao');
       .all(photoRoute, photo)
       .all(usersRoute, users)
       .all(userRoute, user)
+      .all(userAdvertsRoute, userAdverts)
       .all(statsRoute, stats)
 
     // Start server

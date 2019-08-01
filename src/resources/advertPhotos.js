@@ -1,27 +1,25 @@
 const { photoUri } = require('../routes')
-const formatAdvertPhotos = photos => photos.map(photo => photoUri(photo.key))
-
-const { asyncMW, check, created, sendJson, resourceExists, resourceMW } = require('../helpers/express-rest')
+const { formatPhotos } = require('../formats')
+const { asyncMW, check, resourceExists, resourceMW } = require('../helpers/express-rest')
 const { AuthAdvertOwnerOrAdmin } = require('../auth')
 const { getAdvert, getAdvertPhotos, uploadPhoto } = require('../dao')
-
-const upload = require('../helpers/upload')
-const crypto = require('crypto')
-const keygen = filename => crypto.randomBytes(8).toString('hex')+'-'+filename
+const multipart = require('../helpers/multipart')
 const advertExists = resourceExists(params => getAdvert(params.advert_id), 'advert')
 
 module.exports = {
   advertPhotos: resourceMW({
     get: [
       check(advertExists),
-      asyncMW((request, response) => getAdvertPhotos(request.advert.id).then(formatAdvertPhotos).then(sendJson(response)))
+      asyncMW(async (request, response) => response.json(formatPhotos(await getAdvertPhotos(request.advert.id))))
     ],
     post: [
       check(advertExists, AuthAdvertOwnerOrAdmin),
-      asyncMW((request, response) => upload(request)
-        .then(({ filename, buffer }) => uploadPhoto(keygen(filename), request.advert.id, buffer))
-        .then(photo => photoUri(photo.key))
-        .then(created(response)))
+      asyncMW(async (request, response) => {
+        const { fields, files } = await multipart(request)
+        const { name, buffer } = files[0]
+        const photo = await uploadPhoto(name, request.advert.id, buffer, fields.thumbnail)
+        response.created(photoUri(photo.key))
+      })
     ]
   })
 }

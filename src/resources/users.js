@@ -1,22 +1,9 @@
 const bcrypt = require('bcrypt')
-const { userUri, userAdvertsUri } = require('../routes')
-const formatUsers = users => users.map(formatListUser)
-const formatListUser = data => ({
-  self: userUri(data.email),
-  firstname: data.firstname,
-  lastname: data.lastname,
-  email: data.email,
-  avatar: data.avatar,
-})
-const formatFullUser = data => ({
-  ...formatListUser(data),
-  adverts: userAdvertsUri(data.email),
-  creation_date: timestamp(data.creation_date)
-})
-
-const { asyncMW, check, empty, created, sendJson, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
+const { userUri } = require('../routes')
+const { formatUsers, formatUser, formatUserAdverts } = require('../formats')
+const { asyncMW, check, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
 const { Authenticated, AuthAdmin, AuthUserOrAdmin } = require('../auth')
-const { timestamp, createUser, getUsers, getUserByEmail, patchUser, deleteUser } = require('../dao')
+const { createUser, getUsers, getUserByEmail, getUserAdverts, patchUser, deleteUser } = require('../dao')
 const userExists = resourceExists(params => getUserByEmail(params.email), 'user')
 const passwordValidity = request => {
   if (!request.body.password) return { status: 400, message: 'Password not found' }
@@ -29,20 +16,21 @@ module.exports = {
   users: resourceMW({
     get: [
       check(AuthAdmin),
-      asyncMW((request, response) => getUsers().then(formatUsers).then(sendJson(response)))
+      asyncMW(async (request, response) => response.json(formatUsers(await getUsers())))
     ],
     post: [
       check(Authenticated, passwordValidity),
-      asyncMW((request, response) => hashPassword(request.body.password)
-        .then(hash => createUser(request.auth.email, hash))
-        .then(user => userUri(user.email))
-        .then(created(response)))
+      asyncMW(async (request, response) => {
+        const hash = await hashPassword(request.body.password)
+        const user = await createUser(request.auth.email, hash)
+        response.created(userUri(user.email))
+      })
     ]
   }),
   user: resourceMW({
     get: [
       check(userExists),
-      (request, response) => sendJson(response)(formatFullUser(request.user))
+      (request, response) => response.json(formatUser(request.user))
     ],
     patch: [
       check(userExists, AuthUserOrAdmin, paramsValidity(check => {
@@ -50,11 +38,17 @@ module.exports = {
         check('lastname').exists() && check('lastname').isLength({ min: 1, max: 64})
         //check('avatar_uri').exists() && check('avatar_uri').isURL()
       })),
-      asyncMW((request, response) => patchUser(request.user.email, request.body).then(empty(response)))
+      asyncMW(async (request, response) => response.empty(await patchUser(request.user.email, request.body)))
     ],
     delete: [
       check(userExists, AuthAdmin),
-      asyncMW((request, response) => deleteUser(request.user.email).then(empty(response)))
+      asyncMW(async (request, response) => response.empty(await deleteUser(request.user.email)))
+    ]
+  }),
+  userAdverts: resourceMW({
+    get: [
+      check(userExists),
+      asyncMW(async (request, response) => response.json(formatUserAdverts(await getUserAdverts(request.user.email))))
     ]
   })
 }

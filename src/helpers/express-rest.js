@@ -21,10 +21,23 @@ const resourceMW = resource  => (request, response) => {
   let mw = resource[method]
   if (!mw) return response.sendStatus(405)
   if (Array.isArray(mw)) mw = chain(...mw)
+  // Enhance response object with 2 new methods without altering the prototype
+  /*mw(request, new Proxy(response, {
+    get: function(response, key) {
+      if (key == 'empty') return () => response.sendStatus(204)
+      if (key == 'created') return data => {
+        if (typeof data != 'string') response.status(201).json(data)
+        else response.set('Location', data).sendStatus(204)
+      }
+      return response[key]
+    }
+  }))*/
+  response.empty = () => response.sendStatus(204)
+  response.created = data => {
+    if (typeof data != 'string') response.status(201).json(data)
+    else response.set('Location', data).sendStatus(204)
+  }
   mw(request, response)
-  /* if (typeof error == 'string') log(`Error: ${error}`)
-  else log('Error', error)
-  response.sendStatus(500) */
 }
 
 module.exports = {
@@ -60,13 +73,6 @@ module.exports = {
     const errors = validator(request.body, checks)
     return errors.length > 0 && { status: 400, message: errors.join('\n') }
   },
-  empty: response => () => response.sendStatus(204),
-  created: response => data => {
-    if (typeof data != 'string') response.status(201).json(data)
-    else response.set('Location', data).sendStatus(204)
-  },
-  sendJson: response => data => response.json(data),
-  sendText: response => text => response.end(text),
   resourceMW,
   StaticResource: data => (resourceMW({ get: (request, response) => Promise.resolve(data).then(data => response.json(data)) })),
   Uri: (root, pattern) => {
