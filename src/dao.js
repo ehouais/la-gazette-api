@@ -26,7 +26,7 @@ module.exports = {
   getAdverts: (from, contains) => adverts(
     get({
       ...(from && { creation_date: { $lte: new Date(from) } }),
-      ...(contains && { $text: { $search: contains } })
+      ...(contains && { text: { $regex: contains, $options: 'i' } })
     }, +process.env.NB_ADVERTS_MAX))
     .then(map(transformId)),
   getAdvert: id => adverts(findOne({ _id: objectId(id) })).then(advert => advert && transformId(advert)),
