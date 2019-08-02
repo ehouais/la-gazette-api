@@ -35,5 +35,10 @@ module.exports = {
     creation_date: timestamp(data.creation_date)
   }),
   formatUsers: users => users.map(_formatUser),
-  formatPhotos: photos => photos.map(photo => photoUri(photo.key))
+  formatPhotos: photos => photos.map(photo => photoUri(photo.key)),
+  formatToken: (token, data) => ({
+    id: token,
+    user: userUri(data.email),
+    expiration_date: data.exp
+  })  
 }

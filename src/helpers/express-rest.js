@@ -81,5 +81,5 @@ module.exports = {
       return root+pattern.replace(regexp, id => arguments[params.indexOf(id)])
     }
   },
-  promisify: fn => (...args) => new Promise((resolve, reject) => fn(...args, (err, result) => err ? reject(err) : resolve(result)))
+  promisify: fn => (...args) => new Promise((resolve, reject) => fn(...args, (err, result) => resolve([err, result])))
 }

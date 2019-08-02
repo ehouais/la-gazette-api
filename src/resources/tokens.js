@@ -1,25 +1,20 @@
-const bcrypt = require('bcrypt')
 const Validator = require('validator')
 const { asyncMW, resourceMW } = require('../helpers/express-rest')
-const { userUri } = require('../routes')
-const { genToken, verifyToken } = require('../auth')
+const { formatToken } = require('../formats')
+const { checkCredentials, genToken, verifyToken } = require('../auth')
 const { getUserByEmail } = require('../dao')
-
-const formatToken = (token, data) => ({
-  id: token,
-  user: userUri(data.email),
-  expiration_date: data.exp
-})
-const checkCredentials = (email, password) => getUserByEmail(email).then(user => user && bcrypt.compare(password, user.passhash))
 
 module.exports = {
   tokens: resourceMW({
     get: [
       asyncMW(async (request, response) => {
+        // Get token from query parameters
         const token = Object.keys(request.query)[0]
         if (!token) return response.sendStatus(501)
-        const data = await verifyToken(token)
-        if (!data) return response.status(400).end('Invalid token')
+        // Check token validity
+        const [err, data] = await verifyToken(token)
+        if (err) return response.status(400).end('Invalid token')
+        // Return token structure
         return response.json(formatToken(token, data))
       })
     ],
@@ -34,7 +29,8 @@ module.exports = {
           validCredentials = await checkCredentials(email, password)
           if (!validCredentials) return response.status(400).end('Invalid credentials')
           const data = { email,  exp: Math.floor(Date.now() / 1000) + (60 * 60) }
-          const token = await genToken(data)
+          const [err, token] = await genToken(data)
+          if (err) throw err
           return response.json(formatToken(token, data))
         }
 
@@ -45,7 +41,8 @@ module.exports = {
         const user = await getUserByEmail(email)
         if (user) return response.status(400).end('User already exists')
         const data = { email,  exp: Math.floor(Date.now() / 1000) + (15 * 60) }
-        const token = await genToken(data)
+        const [err, token] = await genToken(data)
+        if (err) throw err
         return response.json(formatToken(token, data))
       })
     ]

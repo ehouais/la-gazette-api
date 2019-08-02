@@ -1,8 +1,7 @@
-const bcrypt = require('bcrypt')
 const { userUri } = require('../routes')
 const { formatUsers, formatUser, formatUserAdverts } = require('../formats')
 const { asyncMW, check, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
-const { Authenticated, AuthAdmin, AuthUserOrAdmin } = require('../auth')
+const { hashPassword, Authenticated, AuthAdmin, AuthUserOrAdmin } = require('../auth')
 const { createUser, getUsers, getUserByEmail, getUserAdverts, patchUser, deleteUser } = require('../dao')
 const userExists = resourceExists(params => getUserByEmail(params.email), 'user')
 const passwordValidity = request => {
@@ -10,7 +9,6 @@ const passwordValidity = request => {
   // TODO: decide password strength policy
   if (request.body.password.length < 8) return { status: 400, message: 'Invalid password'}
 }
-const hashPassword = password => bcrypt.hash(password, +process.env.BCRYPT_SALT_ROUNDS)
 
 module.exports = {
   users: resourceMW({
@@ -22,7 +20,7 @@ module.exports = {
       check(Authenticated, passwordValidity),
       asyncMW(async (request, response) => {
         const hash = await hashPassword(request.body.password)
-        const user = await createUser(request.auth.email, hash)
+        const user = await createUser(request.auth.email, hash) // email coming from short-lived token
         response.created(userUri(user.email))
       })
     ]
