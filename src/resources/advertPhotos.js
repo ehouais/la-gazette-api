@@ -1,25 +1,31 @@
 const { photoUri } = require('../routes')
 const { formatPhotos } = require('../formats')
-const { asyncMW, check, resourceExists, resourceMW } = require('../helpers/express-rest')
-const { AuthAdvertOwnerOrAdmin } = require('../auth')
+const { resourceMW, ifResourceExists } = require('../helpers/express-rest')
+const { ifAuthenticated, ifAdminOrAdvertOwner } = require('../auth')
 const { getAdvert, getAdvertPhotos, uploadPhoto } = require('../dao')
 const multipart = require('../helpers/multipart')
-const advertExists = resourceExists(params => getAdvert(params.advert_id), 'advert')
+const ifAdvertExists = ifResourceExists(advertId => getAdvert(advertId))
 
 module.exports = {
   advertPhotos: resourceMW({
-    get: [
-      check(advertExists),
-      asyncMW(async (request, response) => response.json(formatPhotos(await getAdvertPhotos(request.advert.id))))
-    ],
-    post: [
-      check(advertExists, AuthAdvertOwnerOrAdmin),
-      asyncMW(async (request, response) => {
-        const { fields, files } = await multipart(request)
-        const { name, buffer } = files[0]
-        const photo = await uploadPhoto(name, request.advert.id, buffer, fields.thumbnail)
-        response.created(photoUri(photo.key))
+    get: (request, response) => {
+      ifAdvertExists(request.params.advert_id, response, async advert => {
+        const photos = await getAdvertPhotos(advert.id)
+        response.json(formatPhotos(photos))
       })
-    ]
+    },
+    post: (request, response) => {
+      ifAdvertExists(request.params.advert_id, response, advert => {
+        ifAuthenticated(request, response, authUser => {
+          ifAdminOrAdvertOwner([ authUser, advert ], async () => {
+            const { fields, files } = await multipart(request) // TODO: explicitely limit image size
+            const { name, buffer } = files[0]
+            const photo = await uploadPhoto(name, advert.id, buffer, fields.thumbnail)
+            response.set('Location', photoUri(photo.key))
+            response.sendStatus(204)
+          })
+        })
+      })
+    }
   })
 }

@@ -1,28 +1,25 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const { getAdvert, getUserByEmail, patchUser } = require('./dao')
-const { promisify } = require('./helpers/express-rest')
+const { getUserByEmail, patchUser } = require('./dao')
+const { promisify, check } = require('./helpers/express-rest')
 
 const genToken = data => promisify(jwt.sign)(data, process.env.JWT_SECRET)
 const verifyToken = token => promisify(jwt.verify)(token, process.env.JWT_SECRET)
 
-const Authenticated = async (request, checkRole) => {
+const getAuthUser = async request => {
   // Check token presence
   const token = request.get(process.env.TOKEN_HEADER)
-  if (!token) return { status: 401, message: 'Token not found' }
+  if (!token) return
   // Check token validity
   const [err, data] = await verifyToken(token)
-  if (err) return { status: 401, message: 'Invalid token' }
-  // Get corresponding user
-  request.auth = await getUserByEmail(data.email) || { email: data.email }
+  if (err) return
+  // Get corresponding user (or null if token is short-lived)
+  const user = await getUserByEmail(data.email)
   // Keep track of user's last token generation date
-  await patchUser(data.email, { last_auth: new Date() })
-  // If provided, call role checking procedure
-  if (checkRole && ! await checkRole(request)) return { status: 403 }
+  if (user) await patchUser(user.email, { last_auth: new Date() })
+
+  return user || { email: data.email }
 }
-const isAdmin = request => request.auth.admin
-const isUser = request => request.auth.email == request.params.email
-const isAdvertOwner = async request => await getAdvert(request.params.advert_id).then(advert => advert.from == request.auth.email)
 
 module.exports = {
   // Credentials management methods
@@ -33,10 +30,8 @@ module.exports = {
   genToken,
   verifyToken,
 
-  // Check procedures returning the check result or a promise resolving to the result
-  // The result is false (OK) or { status, message } (error)
-  Authenticated,
-  AuthAdmin: async request => Authenticated(request, isAdmin),
-  AuthUserOrAdmin: async request => Authenticated(request, request => isAdmin(request) || isUser(request)),
-  AuthAdvertOwnerOrAdmin: async request => Authenticated(request, async request => isAdmin(request) || await isAdvertOwner(request))
+  ifAuthenticated: check(request => getAuthUser(request), 401),
+  ifAdmin: check(user => user.admin, 403),
+  ifAdminOrAdvertOwner: check(([ user, advert ]) => user.admin || advert.from == user.email, 403),
+  ifAdminOrUser: check(([ user, user2 ]) => user.admin || user.email == user2.email, 403)
 }

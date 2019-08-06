@@ -1,44 +1,66 @@
+const Validator = require('validator')
 const { advertUri } = require('../routes')
 const { formatAdverts, formatAdvert } = require('../formats')
-const advertFromRequest = request => ({ ...request.body, from: request.auth.email })
 const { createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
-const { asyncMW, check, paramsValidity, resourceExists, resourceMW } = require('../helpers/express-rest')
-const { Authenticated, AuthAdvertOwnerOrAdmin } = require('../auth')
-const advertExists = resourceExists(params => getAdvert(params.advert_id), 'advert')
-const createParamsValidity = paramsValidity(check => {
-  check('text').exists() && check('text').isLength({ min: 10, max: 1024})
+const { resourceMW, ifResourceExists, checkData } = require('../helpers/express-rest')
+const { ifAuthenticated, ifAdminOrAdvertOwner } = require('../auth')
+
+const ifAdvertExists = ifResourceExists(advertId => getAdvert(advertId))
+const validateText = text => Validator.isLength(text, { min: 10, max: 1024})
+const ifAdvertPostDataValid = checkData(({ text }) => {
+  if (!text || !validateText(text)) return 'absent or invalid \'text\' value'
 })
-const patchParamsValidity = paramsValidity(check => {
-  check('text').isLength({ min: 10, max: 1024})
+const ifAdvertPatchDataValid = checkData(({ text }) => {
+  if (text && !validateText(text)) return 'invalid \'text\' value'
 })
 
 module.exports = {
   adverts: resourceMW({
-    get: asyncMW(async (request, response) => {
+    get: async (request, response) => {
       let { before, contains } = request.query
       if (contains) contains = contains.split(',').join(' ')
-      response.json(formatAdverts(await getAdverts(before, contains)))
-    }),
-    post: [
-      check(Authenticated, createParamsValidity),
-      asyncMW(async (request, response) => {
-        const advert = await createAdvert(advertFromRequest(request))
-        response.created(advertUri(advert.id))
+      const adverts = await getAdverts(before, contains)
+
+      response.json(formatAdverts(adverts))
+    },
+    post: (request, response) => {
+      ifAuthenticated(request, response, authUser => {
+        ifAdvertPostDataValid(request.body, response, async ({ text }) => {
+          const advert = await createAdvert({ text, from: authUser.email })
+          response.set('Location', advertUri(advert.id))
+          response.sendStatus(204)
+        })
       })
-    ],
+    }
   }),
   advert: resourceMW({
-    get: [
-      check(advertExists),
-      (request, response) => response.json(formatAdvert(request.advert))
-    ],
-    patch: [
-      check(advertExists, AuthAdvertOwnerOrAdmin, patchParamsValidity),
-      asyncMW(async (request, response) => response.empty(await patchAdvert(request.advert.id, request.body)))
-    ],
-    delete: [
-      check(advertExists, AuthAdvertOwnerOrAdmin),
-      asyncMW(async (request, response) => response.empty(await deleteAdvert(request.advert.id)))
-    ]
+    get: (request, response) => {
+      ifAdvertExists(request.params.advert_id, response, advert => {
+        response.json(formatAdvert(advert))
+      })
+    },
+    patch: (request, response) => {
+      ifAdvertExists(request.params.advert_id, response, advert => {
+        ifAuthenticated(request, response, authUser => {
+          ifAdminOrAdvertOwner([ authUser, advert ], response, () => {
+            ifAdvertPatchDataValid(request.body, response, async ({ text }) => {
+              await patchAdvert(request.advert.id, { text })
+              response.end()
+              // TODO: handle advert fields: phone, location, avatar, needsReview
+            })
+          })
+        })
+      })
+    },
+    delete: (request, response) => {
+      ifAdvertExists(request.params.advert_id, response, advert => {
+        ifAuthenticated(request, response, authUser => {
+          ifAdminOrAdvertOwner([ authUser, advert ], response, async () => {
+            await deleteAdvert(request.advert.id)
+            response.end()
+          })
+        })
+      })
+    }
   })
 }

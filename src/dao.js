@@ -33,7 +33,7 @@ module.exports = {
   patchAdvert,
   deleteAdvert: async id => {
     await adverts(deleteOne({ _id: objectId(id) }))
-    // TODO: delete corresponding photos
+    // TODO: delete corresponding photo resources
   },
   getNbAdverts: () => adverts(count),
 
