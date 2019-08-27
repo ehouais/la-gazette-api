@@ -22,7 +22,6 @@ const patchAdvert = (id, data) => adverts(updateOne({ _id: objectId(id) }, { $se
 module.exports = {
   timestamp: value => Math.round((value.getTime ? value.getTime() : value) / 1000),
 
-  ensureAdvertsIndex: () => adverts(createIndex({ text: 'text' }, { default_language: 'french' })),
   createAdvert: params => adverts(insertOne(params)).then(transformId),
   getAdverts: async (from, contains) => {
     const limAdverts = await adverts(get({
