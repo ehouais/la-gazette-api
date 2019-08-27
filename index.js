@@ -1,12 +1,12 @@
 const { log } = require('./src/helpers/logger')
 const { SECRET_HEADER, SHARED_SECRET, PORT } = process.env
+const { getNbAdverts } = require('./src/dao');
 
-// Test DB connection
-const { version, ensureAdvertsIndex } = require('./src/dao');
 (async () => {
   try {
-    // Ensures that a text index is created on the "adverts" collection
-    await ensureAdvertsIndex()
+    // Test DB connection
+    const nbAdverts = await getNbAdverts()
+    log(`${nbAdverts} adverts in DB`)
 
     // Instantiate express application
     const express = require('express')
