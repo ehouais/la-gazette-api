@@ -1,10 +1,10 @@
 const { photoUri } = require('../routes')
 const { formatPhotos } = require('../formats')
-const { resourceMW, ifResourceExists } = require('../helpers/express-rest')
+const { resourceMW, checkResource } = require('../helpers/express-rest')
 const { ifAuthenticated, ifAdminOrAdvertOwner } = require('../auth')
 const { getAdvert, getAdvertPhotos, uploadPhoto } = require('../dao')
 const multipart = require('../helpers/multipart')
-const ifAdvertExists = ifResourceExists(advertId => getAdvert(advertId))
+const ifAdvertExists = checkResource(advertId => getAdvert(advertId))
 
 module.exports = {
   advertPhotos: resourceMW({

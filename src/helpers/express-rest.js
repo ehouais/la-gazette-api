@@ -18,11 +18,12 @@ const resourceMW = resource => (request, response) => {
   }
 }
 const check = (test, errorCode, msg) => async (args, response, next) => {
-  const result = await test(...(Array.isArray(args) ? args : [args]))
+  const argsArray = Array.isArray(args) ? args : [args]
+  const result = await test(...argsArray)
   result ? next(result) : response.status(errorCode).end(msg)
 }
 const checkData = test => async (data, response, next) => {
-  const result = test(data)
+  const result = await test(data)
   result ? response.status(400).end(result) : next(data)
 }
 
@@ -30,7 +31,7 @@ module.exports = {
   resourceMW,
   check,
   checkData,
-  ifResourceExists: search => check(search, 404),
+  checkResource: search => check(search, 404),
   StaticResource: data => (resourceMW({ get: (request, response) => Promise.resolve(data).then(data => response.json(data)) })),
   Uri: (root, pattern) => {
     const params = pattern.match(regexp) || []

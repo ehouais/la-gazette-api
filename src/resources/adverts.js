@@ -2,10 +2,10 @@ const Validator = require('validator')
 const { advertUri } = require('../routes')
 const { formatAdverts, formatAdvert } = require('../formats')
 const { createAdvert, getAdverts, getAdvert, patchAdvert, deleteAdvert } = require('../dao')
-const { resourceMW, ifResourceExists, checkData } = require('../helpers/express-rest')
+const { resourceMW, checkResource, checkData } = require('../helpers/express-rest')
 const { ifAuthenticated, ifAdminOrAdvertOwner } = require('../auth')
 
-const ifAdvertExists = ifResourceExists(advertId => getAdvert(advertId))
+const ifAdvertExists = checkResource(advertId => getAdvert(advertId))
 const validateText = text => Validator.isLength(text, { min: 10, max: 1024})
 const ifAdvertPostDataValid = checkData(({ text }) => {
   if (!text || !validateText(text)) return 'absent or invalid \'text\' value'
@@ -44,8 +44,8 @@ module.exports = {
         ifAuthenticated(request, response, authUser => {
           ifAdminOrAdvertOwner([ authUser, advert ], response, () => {
             ifAdvertPatchDataValid(request.body, response, async ({ text }) => {
-              await patchAdvert(request.advert.id, { text })
-              response.end()
+              await patchAdvert(advert.id, { text })
+              response.sendStatus(204)
               // TODO: handle advert fields: phone, location, avatar, needsReview
             })
           })
@@ -56,8 +56,8 @@ module.exports = {
       ifAdvertExists(request.params.advert_id, response, advert => {
         ifAuthenticated(request, response, authUser => {
           ifAdminOrAdvertOwner([ authUser, advert ], response, async () => {
-            await deleteAdvert(request.advert.id)
-            response.end()
+            await deleteAdvert(advert.id)
+            response.sendStatus(204)
           })
         })
       })

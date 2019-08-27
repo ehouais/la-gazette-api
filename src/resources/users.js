@@ -1,11 +1,11 @@
 const { userUri } = require('../routes')
 const { formatUsers, formatUser, formatUserAdverts } = require('../formats')
 const Validator = require('validator')
-const { resourceMW, ifResourceExists, checkData } = require('../helpers/express-rest')
+const { resourceMW, checkResource, checkData } = require('../helpers/express-rest')
 const { hashPassword, ifAuthenticated, ifAdmin } = require('../auth')
 const { createUser, getUsers, getUserByEmail, getUserAdverts, patchUser, deleteUser } = require('../dao')
 
-const ifUserExists = ifResourceExists(email => getUserByEmail(email))
+const ifUserExists = checkResource(email => getUserByEmail(email))
 const ifUserPasswordValid = checkData(password => {
   if (!password) return 'Password not found'
   if (!Validator.isLength(password, { min: 8, max: 16})) return 'Invalid password'
@@ -14,7 +14,7 @@ const ifUserPasswordValid = checkData(password => {
 const ifUserPatchDataValid = checkData(({ firstname, lastname }) => {
   if (firstname && !Validator.isLength(firstname, { min: 1, max: 64})) return 'invalid \'firstname\' value'
   if (lastname && !Validator.isLength(lastname, { min: 1, max: 64})) return 'invalid \'lastname\’ value'
-  // TODO: check other fields (avatar, phone, location)
+  // TODO: check other fields (avatar, phone, location, password ?)
 })
 
 module.exports = {
@@ -48,9 +48,9 @@ module.exports = {
       ifUserExists(request.params.email, response, user => {
         ifAuthenticated(request, response, authUser => {
           ifAdminOrUser([ authUser, user ], response, () => {
-            ifUserPatchDataValid(request.body, response, async () => {
-              await patchUser(request.user.email, request.body)
-              response.end()
+            ifUserPatchDataValid(request.body, response, async data => {
+              await patchUser(user.email, data)
+              response.sendStatus(204)
             })
           })
         })
@@ -60,7 +60,7 @@ module.exports = {
       ifUserExists(request.params.email, response, user => {
         ifAuthenticated(request, response, async authUser => {
           await deleteUser(request.user.email)
-          response.end()
+          response.sendStatus(204)
         })
       })
     }

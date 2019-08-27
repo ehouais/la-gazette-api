@@ -36,9 +36,9 @@ module.exports = {
   }),
   formatUsers: users => users.map(_formatUser),
   formatPhotos: photos => photos.map(photo => photoUri(photo.key)),
-  formatToken: (token, data) => ({
+  formatToken: (token, email, exp) => ({
     id: token,
-    user: userUri(data.email),
-    expiration_date: data.exp
+    user: userUri(email),
+    expiration_date: exp
   })  
 }

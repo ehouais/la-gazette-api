@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken')
 const { getUserByEmail, patchUser } = require('./dao')
 const { promisify, check } = require('./helpers/express-rest')
 
-const genToken = data => promisify(jwt.sign)(data, process.env.JWT_SECRET)
+const genToken = (email, exp) => promisify(jwt.sign)({ email, exp }, process.env.JWT_SECRET)
 const verifyToken = token => promisify(jwt.verify)(token, process.env.JWT_SECRET)
 
 const getAuthUser = async request => {
@@ -32,6 +32,6 @@ module.exports = {
 
   ifAuthenticated: check(request => getAuthUser(request), 401),
   ifAdmin: check(user => user.admin, 403),
-  ifAdminOrAdvertOwner: check(([ user, advert ]) => user.admin || advert.from == user.email, 403),
-  ifAdminOrUser: check(([ user, user2 ]) => user.admin || user.email == user2.email, 403)
+  ifAdminOrAdvertOwner: check((user, advert) => user.admin || advert.from == user.email, 403),
+  ifAdminOrUser: check((user, user2) => user.admin || user.email == user2.email, 403)
 }

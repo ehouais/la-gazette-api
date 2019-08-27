@@ -1,10 +1,10 @@
 const { formatPhotos } = require('../formats')
-const { resourceMW, ifResourceExists } = require('../helpers/express-rest')
+const { resourceMW, checkResource } = require('../helpers/express-rest')
 const { ifAuthenticated, ifAdmin, ifAdminOrAdvertOwner } = require('../auth')
 const { getPhotos, getPhoto, getPhotoStream } = require('../dao')
 const mime = require('mime')
 const path = require('path')
-const ifPhotoExists = ifResourceExists(photoId => getPhoto(photoId))
+const ifPhotoExists = checkResource(photoId => getPhoto(photoId))
 
 module.exports = {
   photos: resourceMW({
