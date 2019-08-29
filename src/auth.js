@@ -2,13 +2,14 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const { getUserByEmail, patchUser } = require('./dao')
 const { promisify, check } = require('./helpers/express-rest')
+const { JWT_SECRET, TOKEN_HEADER, BCRYPT_SALT_ROUNDS } = process.env
 
-const genToken = (email, exp) => promisify(jwt.sign)({ email, exp }, process.env.JWT_SECRET)
-const verifyToken = token => promisify(jwt.verify)(token, process.env.JWT_SECRET)
+const genToken = (email, exp) => promisify(jwt.sign)({ email, exp }, JWT_SECRET)
+const verifyToken = token => promisify(jwt.verify)(token, JWT_SECRET)
 
 const getAuthUser = async request => {
   // Check token presence
-  const token = request.get(process.env.TOKEN_HEADER)
+  const token = request.get(TOKEN_HEADER)
   if (!token) return
   // Check token validity
   const [err, data] = await verifyToken(token)
@@ -23,7 +24,7 @@ const getAuthUser = async request => {
 
 module.exports = {
   // Credentials management methods
-  hashPassword: password => bcrypt.hash(password, +process.env.BCRYPT_SALT_ROUNDS),
+  hashPassword: password => bcrypt.hash(password, +BCRYPT_SALT_ROUNDS),
   checkCredentials: (email, password) => getUserByEmail(email).then(user => user && bcrypt.compare(password, user.passhash)),
 
   // JWT promisified management methods
